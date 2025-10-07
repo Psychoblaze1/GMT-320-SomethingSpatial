@@ -153,7 +153,7 @@ const SolarPotentialChart = ({ roofData }) => {
       {
         label: 'Available Potential (kW)',
         data: roofData.map(roof => roof.solarPotential - roof.currentlyInstalled.solar),
-        backgroundColor: 'rgba(255, 193, 7, 0.7)',
+        backgroundColor: 'rgba(79, 171, 143, 0.7)',
       }
     ]
   };
