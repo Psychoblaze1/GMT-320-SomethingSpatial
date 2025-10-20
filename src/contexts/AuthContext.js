@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '../services/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import Loader from '../components/Loader/Loaderr';
 
 const AuthContext = createContext();
 
@@ -113,7 +114,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {loading ? <Loader message="Starting app — please wait…" /> : children}
     </AuthContext.Provider>
   );
 }

@@ -67,10 +67,12 @@ export default function MainLayout({ children, title = 'Dashboard' }) {
   const drawer = (
     <div>
       <Toolbar sx={{ display: 'flex', justifyContent: 'center', py: 1, gap: 1 }}>
-        <EnergySavingsLeafIcon sx={{ color: 'success.main', fontSize: 28 }} />
-        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-          Campus Sustainability
-        </Typography>
+        <RouterLink to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', color: 'inherit' }}>
+          <EnergySavingsLeafIcon sx={{ color: 'success.main', fontSize: 28 }} />
+          <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'success.main', ml: 1 }}>
+            Campus Sustainability
+          </Typography>
+        </RouterLink>
       </Toolbar>
       <Divider />
       <List>
@@ -107,7 +109,9 @@ export default function MainLayout({ children, title = 'Dashboard' }) {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>
-            {title}
+            <RouterLink to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+              {title}
+            </RouterLink>
             {isAdmin && (
               <Typography
                 component="span"
