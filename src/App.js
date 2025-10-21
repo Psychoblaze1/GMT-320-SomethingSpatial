@@ -16,6 +16,7 @@ import MapViewer from './pages/MapViewer';
 import Admin from './pages/Admin';
 import PrivateRoute from './components/auth/PrivateRoute';
 import AdminRoute from './components/auth/AdminRoute';
+import BlogAttempt from './pages/BlogAttempt';
 
 function App() {
   return (

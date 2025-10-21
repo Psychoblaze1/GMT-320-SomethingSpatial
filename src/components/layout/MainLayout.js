@@ -52,7 +52,8 @@ export default function MainLayout({ children, title = 'Dashboard' }) {
   // Base menu items for all users
   const baseMenuItems = [
     { text: 'Overview', icon: <DashboardIcon />, path: '/' },
-    { text: '3D Campus View', icon: <ViewInArIcon />, path: '/map' }
+    { text: '3D Campus View', icon: <ViewInArIcon />, path: '/map' },
+    { text: 'Blog Attempt', icon: <PersonIcon />, path: '/blog-attempt' }
   ];
 
   // Admin menu item (only shown to admins)
@@ -61,6 +62,8 @@ export default function MainLayout({ children, title = 'Dashboard' }) {
     icon: <AdminPanelSettingsIcon />, 
     path: '/admin'
   };
+
+ 
 
   const menuItems = isAdmin ? [...baseMenuItems, adminMenuItem] : baseMenuItems;
 
