@@ -16,6 +16,8 @@ import MapViewer from './pages/MapViewer';
 import Admin from './pages/Admin';
 import PrivateRoute from './components/auth/PrivateRoute';
 import AdminRoute from './components/auth/AdminRoute';
+import SimpleModelViewer from './components/3d/SimpleModelViewer';
+import ModelExperience from './components/3d/ModelExperience';
 
 function App() {
   return (
@@ -33,7 +35,7 @@ function App() {
             } />
             <Route path="/map" element={
               <PrivateRoute>
-                <MapViewer />
+                <ModelExperience />
               </PrivateRoute>
             } />
             <Route path="/admin" element={
