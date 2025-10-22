@@ -1,6 +1,6 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, IconButton, Typography, Chip, Stack, Dialog, DialogTitle, DialogContent, DialogActions, Button, FormControl, InputLabel, Select, MenuItem, LinearProgress, Tooltip, Zoom } from '@mui/material';
+import { Box, IconButton, Typography, Chip, Stack, Dialog, DialogTitle, DialogContent, DialogActions, Button, FormControl, InputLabel, Select, MenuItem, LinearProgress, Tooltip, Zoom, Switch, FormControlLabel } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import NightsStayIcon from '@mui/icons-material/NightsStay';
@@ -8,8 +8,10 @@ import WbSunnyIcon from '@mui/icons-material/WbSunny';
 import TuneIcon from '@mui/icons-material/Tune';
 import InfoIcon from '@mui/icons-material/Info';
 import CloseIcon from '@mui/icons-material/Close';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import MapIcon from '@mui/icons-material/Map';
 import SimpleModelViewer from './SimpleModelViewer';
+import { BASEMAP_TYPES } from './OSMBasemap';
 
 // Lightweight glass styles (local copy so we don't touch other files)
 const glass = {
@@ -31,7 +33,10 @@ export default function ModelExperience({ binMetrics }) {
   const [isNight, setIsNight] = useState(false);
   const [showStats, setShowStats] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-  const [quality, setQuality] = useState('high'); // low | medium | high
+  const [quality, setQuality] = useState('high');
+  const [showBasemap, setShowBasemap] = useState(false);
+  const [basemapType, setBasemapType] = useState(BASEMAP_TYPES.OSM);
+  const [cameraData, setCameraData] = useState(null);
 
   // CSS-only visual effects so SimpleModelViewer stays untouched
   // I need to change the intensity oof the lights when turning the night mode and use CampusModelViewer colours
@@ -41,7 +46,6 @@ export default function ModelExperience({ binMetrics }) {
   }, [quality]);
 
   const handleScreenshot = () => {
-    // Grab the first WebGL canvas on the page (SimpleModelViewer's Canvas)
     const canvas = containerRef.current?.querySelector('canvas');
     if (!canvas) return;
     const link = document.createElement('a');
@@ -49,6 +53,11 @@ export default function ModelExperience({ binMetrics }) {
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
+
+  // Handler for camera updates from 3D scene
+  const handleCameraUpdate = useCallback((data) => {
+    setCameraData(data);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Box
@@ -62,16 +71,22 @@ export default function ModelExperience({ binMetrics }) {
         p: 0,
       }}
     >
-      {/* 3D model - now passes isNight prop */}
+      {/* 3D model - passes basemap settings */}
       <Box
         sx={{
           position: 'absolute',
           inset: 0,
           filter: canvasFilter,
-          transition: 'filter 200ms ease'
+          transition: 'filter 200ms ease',
+          zIndex: 1
         }}
       >
-        <SimpleModelViewer isNight={isNight} />
+        <SimpleModelViewer 
+          isNight={isNight} 
+          showOSM={showBasemap} 
+          basemapType={basemapType}
+          onCameraUpdate={handleCameraUpdate} 
+        />
       </Box>
 
       {/* Night overlay tint (visual only) */}
@@ -99,17 +114,74 @@ export default function ModelExperience({ binMetrics }) {
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="About">
+        <Tooltip title="Admin">
           <IconButton
             component={RouterLink}
-            to="/about"
+            to="/admin"
             size="large"
             sx={{ ...glass, borderRadius: 2 }}
           >
-            <InfoOutlinedIcon />
+            <AdminPanelSettingsIcon />
           </IconButton>
         </Tooltip>
       </Stack>
+
+      {/* Basemap Control (top-left, below nav buttons) */}
+      <Zoom in>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 140,
+            left: 12,
+            zIndex: 10,
+            ...glass,
+            borderRadius: 2,
+            p: 1.5,
+            minWidth: 200
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <MapIcon fontSize="small" />
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+              Basemaps
+            </Typography>
+          </Box>
+          
+          {/* Toggle basemap on/off */}
+          <FormControlLabel
+            control={
+              <Switch 
+                checked={showBasemap} 
+                onChange={(e) => setShowBasemap(e.target.checked)}
+                size="small"
+              />
+            }
+            label={
+              <Typography variant="caption">
+                Show Basemap
+              </Typography>
+            }
+          />
+
+          {/* Basemap type selector */}
+          {showBasemap && (
+            <FormControl fullWidth size="small" sx={{ mt: 1 }}>
+              <InputLabel>Type</InputLabel>
+              <Select
+                value={basemapType}
+                label="Type"
+                onChange={(e) => setBasemapType(e.target.value)}
+              >
+                <MenuItem value={BASEMAP_TYPES.OSM}>OpenStreetMap</MenuItem>
+                <MenuItem value={BASEMAP_TYPES.SATELLITE}>Satellite</MenuItem>
+                <MenuItem value={BASEMAP_TYPES.TOPO}>Topographic</MenuItem>
+                <MenuItem value={BASEMAP_TYPES.DARK}>Dark Theme</MenuItem>
+                <MenuItem value={BASEMAP_TYPES.STREETS}>Light Streets</MenuItem>
+              </Select>
+            </FormControl>
+          )}
+        </Box>
+      </Zoom>
 
       {/* Quick controls (bottom-left) */}
       <Zoom in>

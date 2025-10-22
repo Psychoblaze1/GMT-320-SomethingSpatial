@@ -12,11 +12,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import MapViewer from './pages/MapViewer';
 import Admin from './pages/Admin';
 import PrivateRoute from './components/auth/PrivateRoute';
 import AdminRoute from './components/auth/AdminRoute';
-import SimpleModelViewer from './components/3d/SimpleModelViewer';
 import ModelExperience from './components/3d/ModelExperience';
 
 function App() {
