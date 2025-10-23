@@ -57,6 +57,7 @@ export const walkwayPaths = [
 ];
 
 // Building roofs - tracking solar panel potential and rainwater collection
+// Coordinates are approximate locations around University of Pretoria campus
 export const roofSpaces = [
   {
     id: 1,
@@ -69,6 +70,11 @@ export const roofSpaces = [
     currentlyInstalled: {
       solar: 0,
       rainwater: false
+    },
+    // Real-world coordinates for Solar API queries
+    location: {
+      lat: -25.7545,
+      lng: 28.2293
     }
   },
   {
@@ -82,6 +88,10 @@ export const roofSpaces = [
     currentlyInstalled: {
       solar: 50, // kW
       rainwater: true
+    },
+    location: {
+      lat: -25.7552,
+      lng: 28.2305
     }
   },
   {
@@ -95,6 +105,10 @@ export const roofSpaces = [
     currentlyInstalled: {
       solar: 0,
       rainwater: false
+    },
+    location: {
+      lat: -25.7538,
+      lng: 28.2285
     }
   },
   {
@@ -108,6 +122,10 @@ export const roofSpaces = [
     currentlyInstalled: {
       solar: 100,
       rainwater: true
+    },
+    location: {
+      lat: -25.7548,
+      lng: 28.2280
     }
   },
   {
@@ -121,11 +139,16 @@ export const roofSpaces = [
     currentlyInstalled: {
       solar: 0,
       rainwater: false
+    },
+    location: {
+      lat: -25.7540,
+      lng: 28.2310
     }
   }
 ];
 
 // Green areas around campus - trees, gardens, lawns
+// Polygon coordinates are in [longitude, latitude] format (GeoJSON standard)
 export const greenSpaces = [
   {
     id: 1,
@@ -135,7 +158,15 @@ export const greenSpaces = [
     trees: 45,
     carbonOffsetPerYear: 12.75, // tons CO2
     biodiversityScore: 7.5,
-    maintenanceCost: 5100 // per year
+    maintenanceCost: 5100, // per year
+    // Polygon around central campus area
+    polygon: [
+      [28.2285, -25.7540],
+      [28.2300, -25.7540],
+      [28.2300, -25.7550],
+      [28.2285, -25.7550],
+      [28.2285, -25.7540] // Close the polygon
+    ]
   },
   {
     id: 2,
@@ -145,7 +176,15 @@ export const greenSpaces = [
     trees: 28,
     carbonOffsetPerYear: 8.4,
     biodiversityScore: 9.2,
-    maintenanceCost: 1600
+    maintenanceCost: 1600,
+    // Smaller garden area near sciences
+    polygon: [
+      [28.2305, -25.7548],
+      [28.2315, -25.7548],
+      [28.2315, -25.7556],
+      [28.2305, -25.7556],
+      [28.2305, -25.7548]
+    ]
   },
   {
     id: 3,
@@ -155,7 +194,15 @@ export const greenSpaces = [
     trees: 120,
     carbonOffsetPerYear: 36.0,
     biodiversityScore: 8.8,
-    maintenanceCost: 2800
+    maintenanceCost: 2800,
+    // Long belt along northern edge
+    polygon: [
+      [28.2270, -25.7535],
+      [28.2320, -25.7535],
+      [28.2320, -25.7542],
+      [28.2270, -25.7542],
+      [28.2270, -25.7535]
+    ]
   },
   {
     id: 4,
@@ -165,7 +212,15 @@ export const greenSpaces = [
     trees: 15,
     carbonOffsetPerYear: 2.25,
     biodiversityScore: 6.5,
-    maintenanceCost: 1800
+    maintenanceCost: 1800,
+    // Small peaceful garden
+    polygon: [
+      [28.2275, -25.7552],
+      [28.2282, -25.7552],
+      [28.2282, -25.7558],
+      [28.2275, -25.7558],
+      [28.2275, -25.7552]
+    ]
   },
   {
     id: 5,
@@ -175,7 +230,15 @@ export const greenSpaces = [
     trees: 32,
     carbonOffsetPerYear: 9.6,
     biodiversityScore: 5.8,
-    maintenanceCost: 2700
+    maintenanceCost: 2700,
+    // Buffer around sports area
+    polygon: [
+      [28.2310, -25.7542],
+      [28.2325, -25.7542],
+      [28.2325, -25.7552],
+      [28.2310, -25.7552],
+      [28.2310, -25.7542]
+    ]
   }
 ];
 

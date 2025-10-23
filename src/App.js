@@ -13,9 +13,11 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import MapViewer from './pages/MapViewer';
+import Map2D from './pages/Map2D';
 import Admin from './pages/Admin';
 import PrivateRoute from './components/auth/PrivateRoute';
 import AdminRoute from './components/auth/AdminRoute';
+import ForceAdminAccess from './components/admin/ForceAdminAccess';
 
 function App() {
   return (
@@ -36,10 +38,20 @@ function App() {
                 <MapViewer />
               </PrivateRoute>
             } />
+            <Route path="/map-2d" element={
+              <PrivateRoute>
+                <Map2D />
+              </PrivateRoute>
+            } />
             <Route path="/admin" element={
               <AdminRoute>
                 <Admin />
               </AdminRoute>
+            } />
+            <Route path="/grant-admin" element={
+              <PrivateRoute>
+                <ForceAdminAccess />
+              </PrivateRoute>
             } />
           </Routes>
         </Router>

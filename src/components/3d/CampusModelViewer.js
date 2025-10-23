@@ -1,6 +1,6 @@
 import React, { Suspense, useState, useEffect, useRef } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { OrbitControls, useGLTF, Html, PerspectiveCamera, Environment } from '@react-three/drei';
+import { OrbitControls, useGLTF, Html, PerspectiveCamera } from '@react-three/drei';
 import {
   Box,
   CircularProgress,
@@ -10,7 +10,6 @@ import {
   IconButton,
   Chip,
   Tooltip,
-  Slider,
   Stack,
   Dialog,
   DialogTitle,
@@ -39,7 +38,6 @@ import TuneIcon from '@mui/icons-material/Tune';
 import MapIcon from '@mui/icons-material/Map';
 import InfoIcon from '@mui/icons-material/Info';
 import CloseIcon from '@mui/icons-material/Close';
-import FilterAltIcon from '@mui/icons-material/FilterAlt';
 
 // Changes the sky color between day and night modes
 function SceneBackground({ isNight }) {
@@ -126,76 +124,159 @@ function CampusModel({ modelPath }) {
   return <primitive object={gltf.scene} />;
 }
 
-// 3D waste bin markers - they bounce when selected
+// 3D waste bin markers - realistic cylinder bins with icons and fill indicators
 function BinMarker({ position, type, onClick, isSelected, isFiltered, fillLevel }) {
   const [hovered, setHovered] = useState(false);
-  const meshRef = useRef();
+  const groupRef = useRef();
+  const glowRef = useRef();
 
-  // Make the bin bounce up and down when it's selected
+  // Make the bin bounce up and down when it's selected, pulse the glow ring
   useFrame((state) => {
-    if (meshRef.current && isSelected) {
-      meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 2) * 2;
-    } else if (meshRef.current) {
-      meshRef.current.position.y = position[1];
+    if (groupRef.current && isSelected) {
+      groupRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 2) * 2;
+    } else if (groupRef.current) {
+      groupRef.current.position.y = position[1];
+    }
+
+    // Pulsing glow effect
+    if (glowRef.current && (hovered || isSelected)) {
+      glowRef.current.scale.setScalar(1 + Math.sin(state.clock.elapsedTime * 3) * 0.15);
     }
   });
 
   const getColor = () => {
     switch (type) {
-      case 'recycling': return '#2196f3'; // Blue
-      case 'compost': return '#4caf50'; // Green
-      case 'general': return '#757575'; // Gray
-      default: return '#ff9800'; // Orange
+      case 'recycling': return '#1976d2'; // Darker blue
+      case 'compost': return '#388e3c'; // Darker green
+      case 'general': return '#616161'; // Dark gray
+      default: return '#f57c00'; // Orange
+    }
+  };
+
+  const getEmissiveColor = () => {
+    switch (type) {
+      case 'recycling': return '#2196f3'; // Bright blue
+      case 'compost': return '#4caf50'; // Bright green
+      case 'general': return '#9e9e9e'; // Light gray
+      default: return '#ff9800'; // Bright orange
     }
   };
 
   if (isFiltered) return null;
 
+  const baseScale = isSelected ? 1.8 : hovered ? 1.4 : 1;
+  const binHeight = 8;
+  const binRadius = 3;
+
   return (
-    <mesh
-      ref={meshRef}
+    <group
+      ref={groupRef}
       position={position}
       onClick={onClick}
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
-      scale={isSelected ? 2 : hovered ? 1.5 : 1}
-      castShadow
-      receiveShadow
-      renderOrder={999}
+      scale={baseScale}
     >
-      <sphereGeometry args={[3, 32, 32]} />
-      <meshStandardMaterial
-        color={getColor()}
-        emissive={getColor()}
-        emissiveIntensity={isSelected ? 0.8 : hovered ? 0.5 : 0.2}
-        metalness={0.3}
-        roughness={0.4}
-        depthTest={false}
-        depthWrite={false}
-        transparent={true}
-        opacity={0.95}
-      />
+      {/* Glowing base ring - shows bin is interactive */}
+      <mesh
+        ref={glowRef}
+        position={[0, -binHeight / 2 - 0.5, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        renderOrder={998}
+      >
+        <ringGeometry args={[binRadius * 1.2, binRadius * 1.5, 32]} />
+        <meshBasicMaterial
+          color={getEmissiveColor()}
+          transparent
+          opacity={hovered || isSelected ? 0.6 : 0.3}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+
+      {/* Main bin body - realistic cylinder */}
+      <mesh castShadow receiveShadow renderOrder={999}>
+        <cylinderGeometry args={[binRadius, binRadius * 0.9, binHeight, 32]} />
+        <meshStandardMaterial
+          color={getColor()}
+          emissive={getEmissiveColor()}
+          emissiveIntensity={isSelected ? 0.6 : hovered ? 0.4 : 0.15}
+          metalness={0.6}
+          roughness={0.3}
+        />
+      </mesh>
+
+      {/* Bin lid - darker top */}
+      <mesh
+        position={[0, binHeight / 2 + 0.3, 0]}
+        castShadow
+        renderOrder={999}
+      >
+        <cylinderGeometry args={[binRadius * 1.1, binRadius * 1.1, 0.6, 32]} />
+        <meshStandardMaterial
+          color={getColor()}
+          emissive={getEmissiveColor()}
+          emissiveIntensity={isSelected ? 0.5 : hovered ? 0.3 : 0.1}
+          metalness={0.7}
+          roughness={0.2}
+        />
+      </mesh>
+
+      {/* Fill level indicator - vertical bar on the side */}
+      <mesh position={[binRadius * 0.95, -binHeight / 2 + (binHeight * fillLevel / 100) / 2, 0]} renderOrder={1000}>
+        <boxGeometry args={[0.5, binHeight * fillLevel / 100, 1]} />
+        <meshBasicMaterial
+          color={fillLevel >= 80 ? '#f44336' : fillLevel >= 50 ? '#ff9800' : '#4caf50'}
+          transparent
+          opacity={0.8}
+        />
+      </mesh>
+
+      {/* Icon indicator floating above bin */}
+      {(hovered || isSelected) && (
+        <mesh position={[0, binHeight / 2 + 4, 0]} renderOrder={1001}>
+          <sphereGeometry args={[1.5, 16, 16]} />
+          <meshBasicMaterial
+            color={getColor()}
+            transparent
+            opacity={0.9}
+          />
+        </mesh>
+      )}
+
+      {/* Hover tooltip with info */}
       {hovered && !isSelected && (
-        <Html distanceFactor={10}>
+        <Html distanceFactor={15} center position={[0, binHeight / 2 + 6, 0]}>
           <Box
             sx={{
               ...glassDarkStyle,
-              p: 1,
+              p: 1.5,
               borderRadius: 2,
               color: 'white',
-              minWidth: 100
+              minWidth: 120,
+              textAlign: 'center',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.4)'
             }}
           >
-            <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block' }}>
-              {type.charAt(0).toUpperCase() + type.slice(1)}
+            <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block', fontSize: '0.85rem' }}>
+              {type.charAt(0).toUpperCase() + type.slice(1)} Bin
             </Typography>
-            <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
-              Fill: {fillLevel}%
+            <Typography variant="caption" sx={{ fontSize: '0.75rem', opacity: 0.9 }}>
+              ID: #{position[0]},{position[2]}
             </Typography>
+            <Box sx={{
+              mt: 0.5,
+              p: 0.5,
+              bgcolor: fillLevel >= 80 ? 'error.main' : fillLevel >= 50 ? 'warning.main' : 'success.main',
+              borderRadius: 1
+            }}>
+              <Typography variant="caption" sx={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
+                {fillLevel}% Full
+              </Typography>
+            </Box>
           </Box>
         </Html>
       )}
-    </mesh>
+    </group>
   );
 }
 
@@ -293,38 +374,57 @@ function Scene({ binData, walkwayData, showBins, showWalkways, selectedBin, onBi
         />
       )}
 
-      {/* Basic lighting to see everything */}
-      <ambientLight intensity={isNight ? 0.1 : 0.3} />
+      {/* Enhanced ambient lighting for better bin visibility */}
+      <ambientLight intensity={isNight ? 0.3 : 0.5} />
 
-      {/* Main sun/moon light with shadows */}
+      {/* Main sun/moon light with improved shadows */}
       <directionalLight
-        position={isNight ? [-100, 80, -50] : [100, 150, 50]}
-        intensity={isNight ? 0.3 : 1.5}
+        position={isNight ? [-100, 80, -50] : [100, 200, 80]}
+        intensity={isNight ? 0.5 : 2.0}
         color={isNight ? '#6495ED' : '#FFF5E1'}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-far={500}
-        shadow-camera-left={-250}
-        shadow-camera-right={250}
-        shadow-camera-top={250}
-        shadow-camera-bottom={-250}
+        shadow-mapSize-width={4096}
+        shadow-mapSize-height={4096}
+        shadow-camera-far={600}
+        shadow-camera-left={-300}
+        shadow-camera-right={300}
+        shadow-camera-top={300}
+        shadow-camera-bottom={-300}
         shadow-bias={-0.0001}
       />
 
-      {/* Secondary light for softer shadows */}
+      {/* Fill light to reduce harsh shadows on bins */}
       <directionalLight
-        position={[-80, 100, -80]}
-        intensity={isNight ? 0.1 : 0.4}
+        position={[-80, 120, -80]}
+        intensity={isNight ? 0.3 : 0.7}
         color={isNight ? '#191970' : '#b3d4ff'}
       />
 
-      {/* Sky and ground lighting */}
+      {/* Additional light from opposite side for balanced illumination */}
+      <directionalLight
+        position={[80, 100, 80]}
+        intensity={isNight ? 0.2 : 0.5}
+        color={isNight ? '#4169E1' : '#87CEEB'}
+      />
+
+      {/* Sky and ground lighting with better balance */}
       <hemisphereLight
         skyColor={isNight ? '#0a1929' : '#87CEEB'}
         groundColor={isNight ? '#1a1a2e' : '#6b5d47'}
-        intensity={isNight ? 0.2 : 0.5}
+        intensity={isNight ? 0.4 : 0.7}
       />
+
+      {/* Point lights near bins for enhanced visibility */}
+      {showBins && binData.slice(0, 5).map((bin, idx) => (
+        <pointLight
+          key={`bin-light-${idx}`}
+          position={[bin.position[0], bin.position[1] + 15, bin.position[2]]}
+          intensity={isNight ? 0.5 : 0.3}
+          distance={50}
+          decay={2}
+          color={isNight ? '#ffffff' : '#fff8dc'}
+        />
+      ))}
 
       {/* Campus 3D Model */}
       <Suspense fallback={
@@ -369,8 +469,8 @@ function Scene({ binData, walkwayData, showBins, showWalkways, selectedBin, onBi
 // Main component - wraps everything and handles all the UI controls
 export default function CampusModelViewer({ binData = [], walkwayData = [], binMetrics, selectedBin, onBinSelect }) {
   const [showBins, setShowBins] = useState(true);
-  const [showWalkways, setShowWalkways] = useState(true);
-  const [layers, setLayers] = useState(['bins', 'walkways']);
+  const [showWalkways, setShowWalkways] = useState(false); // Disabled by default for better bin visibility
+  const [layers, setLayers] = useState(['bins']); // Only show bins by default
   const [isNight, setIsNight] = useState(false);
   const [showStats, setShowStats] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
