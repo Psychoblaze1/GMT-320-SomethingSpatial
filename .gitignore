@@ -13,6 +13,7 @@
 
 # misc
 .DS_Store
+.env
 .env.local
 .env.development.local
 .env.test.local
@@ -21,3 +22,22 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+GMT-320-SomethingSpatial.rar
+CLAUDE.md
+.env.example
+3D_MAP_IMPROVEMENTS.md
+3dmodel.gltf
+ADMIN_FEATURES.md
+COORDINATE_SYSTEM_FIX.md
+CRS_ALIGNMENT_GUIDE.md
+FIX_QGIS_EXPORT.md
+MAPBOX_SETUP.md
+MULTIPOINT_FIX.md
+nul
+public/3dmodel.gltf
+QGIS_BIN_EXPORT_GUIDE.md
+QUICK_UPLOAD_GUIDE.md
+SOFTWARE_ARCHITECTURE.md
+SOLAR_API_SETUP.md
+src.rar
+SYSTEM_OVERVIEW.md
