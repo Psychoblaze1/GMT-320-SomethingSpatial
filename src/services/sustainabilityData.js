@@ -56,7 +56,6 @@ export const walkwayPaths = [
   }
 ];
 
-// Building roofs - tracking solar panel potential and rainwater collection
 export const roofSpaces = [
   {
     id: 1,
@@ -69,6 +68,10 @@ export const roofSpaces = [
     currentlyInstalled: {
       solar: 0,
       rainwater: false
+    },
+    location: {
+      lat: -25.7545,
+      lng: 28.2293
     }
   },
   {
@@ -82,6 +85,10 @@ export const roofSpaces = [
     currentlyInstalled: {
       solar: 50, // kW
       rainwater: true
+    },
+    location: {
+      lat: -25.7552,
+      lng: 28.2305
     }
   },
   {
@@ -95,6 +102,10 @@ export const roofSpaces = [
     currentlyInstalled: {
       solar: 0,
       rainwater: false
+    },
+    location: {
+      lat: -25.7538,
+      lng: 28.2285
     }
   },
   {
@@ -108,6 +119,10 @@ export const roofSpaces = [
     currentlyInstalled: {
       solar: 100,
       rainwater: true
+    },
+    location: {
+      lat: -25.7548,
+      lng: 28.2280
     }
   },
   {
@@ -121,80 +136,134 @@ export const roofSpaces = [
     currentlyInstalled: {
       solar: 0,
       rainwater: false
+    },
+    location: {
+      lat: -25.7540,
+      lng: 28.2310
     }
   }
 ];
 
-// Green areas around campus - trees, gardens, lawns
 export const greenSpaces = [
   {
     id: 1,
-    name: 'Central Quad',
-    area: 8500, // square meters
+    name: 'LC de Villiers Sports Grounds',
+    area: 8500,
     type: 'lawn',
     trees: 45,
-    carbonOffsetPerYear: 12.75, // tons CO2
+    carbonOffsetPerYear: 12.75,
     biodiversityScore: 7.5,
-    maintenanceCost: 5100 // per year
+    maintenanceCost: 5100,
+    polygon: [
+      [28.2285, -25.7540],
+      [28.2300, -25.7540],
+      [28.2300, -25.7550],
+      [28.2285, -25.7550],
+      [28.2285, -25.7540]
+    ]
   },
   {
     id: 2,
-    name: 'Native Garden',
+    name: 'Botanical Gardens',
     area: 3200,
     type: 'native-plants',
     trees: 28,
     carbonOffsetPerYear: 8.4,
     biodiversityScore: 9.2,
-    maintenanceCost: 1600
+    maintenanceCost: 1600,
+    polygon: [
+      [28.2305, -25.7548],
+      [28.2315, -25.7548],
+      [28.2315, -25.7556],
+      [28.2305, -25.7556],
+      [28.2305, -25.7548]
+    ]
   },
   {
     id: 3,
-    name: 'North Green Belt',
+    name: 'Amphitheatre Lawns',
     area: 5600,
     type: 'mixed-woodland',
     trees: 120,
     carbonOffsetPerYear: 36.0,
     biodiversityScore: 8.8,
-    maintenanceCost: 2800
+    maintenanceCost: 2800,
+    polygon: [
+      [28.2270, -25.7535],
+      [28.2320, -25.7535],
+      [28.2320, -25.7542],
+      [28.2270, -25.7542],
+      [28.2270, -25.7535]
+    ]
   },
   {
     id: 4,
-    name: 'Meditation Garden',
+    name: 'Old Arts Courtyard',
     area: 1200,
     type: 'ornamental',
     trees: 15,
     carbonOffsetPerYear: 2.25,
     biodiversityScore: 6.5,
-    maintenanceCost: 1800
+    maintenanceCost: 1800,
+    polygon: [
+      [28.2275, -25.7552],
+      [28.2282, -25.7552],
+      [28.2282, -25.7558],
+      [28.2275, -25.7558],
+      [28.2275, -25.7552]
+    ]
   },
   {
     id: 5,
-    name: 'Sports Field Buffer Zone',
+    name: 'Universiteitsoord Green Belt',
     area: 4500,
     type: 'lawn',
     trees: 32,
     carbonOffsetPerYear: 9.6,
     biodiversityScore: 5.8,
-    maintenanceCost: 2700
+    maintenanceCost: 2700,
+    polygon: [
+      [28.2310, -25.7542],
+      [28.2325, -25.7542],
+      [28.2325, -25.7552],
+      [28.2310, -25.7552],
+      [28.2310, -25.7542]
+    ]
+  },
+  {
+    id: 6,
+    name: 'Roper Quad Gardens',
+    area: 2800,
+    type: 'ornamental',
+    trees: 22,
+    carbonOffsetPerYear: 4.2,
+    biodiversityScore: 7.8,
+    maintenanceCost: 2100,
+    polygon: [
+      [28.2288, -25.7545],
+      [28.2298, -25.7545],
+      [28.2298, -25.7552],
+      [28.2288, -25.7552],
+      [28.2288, -25.7545]
+    ]
   }
 ];
 
-// Study pods around campus - energy-efficient study spaces
 export const studyPods = [
   {
     id: 1,
-    location: 'Library East Wing',
+    location: 'Merensky 2 Library',
     capacity: 8,
     features: ['soundproofing', 'natural-light', 'ergonomic-furniture', 'whiteboard'],
     energyEfficiency: 'A+',
-    powerUsage: 0.5, // kW
-    utilizationRate: 0.85, // 85% average usage
+    powerUsage: 0.5,
+    utilizationRate: 0.85,
     studentSatisfaction: 4.7,
-    co2SavedVsTraditional: 2.5 // tons per year
+    co2SavedVsTraditional: 2.5
   },
   {
     id: 2,
-    location: 'Science Building Level 2',
+    location: 'Engineering Building 2',
     capacity: 6,
     features: ['soundproofing', 'natural-light', 'ergonomic-furniture', 'display-screen'],
     energyEfficiency: 'A',
@@ -205,7 +274,7 @@ export const studyPods = [
   },
   {
     id: 3,
-    location: 'Student Center Ground Floor',
+    location: 'Aula',
     capacity: 4,
     features: ['soundproofing', 'ergonomic-furniture', 'whiteboard'],
     energyEfficiency: 'A+',
@@ -216,7 +285,7 @@ export const studyPods = [
   },
   {
     id: 4,
-    location: 'Engineering Building Level 3',
+    location: 'Informatorium',
     capacity: 10,
     features: ['soundproofing', 'natural-light', 'ergonomic-furniture', 'whiteboard', 'display-screen'],
     energyEfficiency: 'A',
@@ -224,12 +293,20 @@ export const studyPods = [
     utilizationRate: 0.88,
     studentSatisfaction: 4.6,
     co2SavedVsTraditional: 3.0
+  },
+  {
+    id: 5,
+    location: 'Natural Sciences Building',
+    capacity: 6,
+    features: ['soundproofing', 'natural-light', 'ergonomic-furniture'],
+    energyEfficiency: 'A+',
+    powerUsage: 0.6,
+    utilizationRate: 0.81,
+    studentSatisfaction: 4.5,
+    co2SavedVsTraditional: 1.9
   }
 ];
 
-// Helper functions to calculate all the sustainability metrics
-
-// Add up all the roof stats - solar panels and rainwater systems
 export function getTotalRoofMetrics() {
   const totalArea = roofSpaces.reduce((sum, roof) => sum + roof.area, 0);
   const totalSolarPotential = roofSpaces.reduce((sum, roof) => sum + roof.solarPotential, 0);

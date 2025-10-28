@@ -28,7 +28,6 @@ import {
 } from '@mui/material';
 import MainLayout from '../components/layout/MainLayout';
 
-// Icons
 import SolarPowerIcon from '@mui/icons-material/SolarPower';
 import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import ParkIcon from '@mui/icons-material/Park';
@@ -44,7 +43,6 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import RecyclingIcon from '@mui/icons-material/Recycling';
 import OpacityIcon from '@mui/icons-material/Opacity';
 
-// Chart components
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -59,7 +57,6 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 
-// Import sustainability data service
 import {
   getTotalRoofMetrics,
   getTotalGreenSpaceMetrics,

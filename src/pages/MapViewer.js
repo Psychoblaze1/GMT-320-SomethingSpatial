@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Box, Fade } from '@mui/material';
 import MainLayout from '../components/layout/MainLayout';
 import CampusModelViewer from '../components/3d/CampusModelViewer';
 import WebGLErrorBoundary from '../components/3d/ErrorBoundary';
-import { binLocations, walkwayPaths, getBinMetrics } from '../services/sustainabilityData';
+import { getBinMetrics } from '../services/sustainabilityData';
 
 export default function MapViewer() {
-  const [selectedBin, setSelectedBin] = useState(null);
   const binMetrics = getBinMetrics();
 
   return (
@@ -19,17 +18,10 @@ export default function MapViewer() {
           background: 'linear-gradient(180deg, #87CEEB 0%, #E0F6FF 100%)'
         }}
       >
-        {/* 3D Viewer with Error Boundary */}
         <Fade in timeout={800}>
           <Box sx={{ height: '100%', width: '100%' }}>
-            <WebGLErrorBoundary binData={binLocations} walkwayData={walkwayPaths}>
-              <CampusModelViewer
-                binData={binLocations}
-                walkwayData={walkwayPaths}
-                binMetrics={binMetrics}
-                selectedBin={selectedBin}
-                onBinSelect={setSelectedBin}
-              />
+            <WebGLErrorBoundary>
+              <CampusModelViewer binMetrics={binMetrics} />
             </WebGLErrorBoundary>
           </Box>
         </Fade>

@@ -23,6 +23,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ViewInArIcon from '@mui/icons-material/ViewInAr';
+import MapIcon from '@mui/icons-material/Map';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
@@ -52,7 +53,8 @@ export default function MainLayout({ children, title = 'Dashboard' }) {
   // Base menu items for all users
   const baseMenuItems = [
     { text: 'Overview', icon: <DashboardIcon />, path: '/' },
-    { text: '3D Campus View', icon: <ViewInArIcon />, path: '/map' }
+    { text: '3D Campus View', icon: <ViewInArIcon />, path: '/map' },
+    { text: '2D Map View', icon: <MapIcon />, path: '/map-2d' }
   ];
 
   // Admin menu item (only shown to admins)

@@ -12,6 +12,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import MapViewer from './pages/MapViewer';
+import Map2D from './pages/Map2D';
 import Admin from './pages/Admin';
 import PrivateRoute from './components/auth/PrivateRoute';
 import AdminRoute from './components/auth/AdminRoute';
@@ -34,6 +36,11 @@ function App() {
             <Route path="/map" element={
               <PrivateRoute>
                 <ModelExperience />
+              </PrivateRoute>
+            } />
+            <Route path="/map-2d" element={
+              <PrivateRoute>
+                <Map2D />
               </PrivateRoute>
             } />
             <Route path="/admin" element={

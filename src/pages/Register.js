@@ -166,7 +166,7 @@ export default function Register() {
       </Paper>
       <Box mt={2} display="flex" justifyContent="center">
         <Typography variant="body2" color="text.secondary" align="center">
-          Tshwane Sinkhole Monitoring System
+          Something Spatial Dashboard System
         </Typography>
       </Box>
     </Container>

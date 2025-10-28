@@ -1,70 +1,69 @@
-# Getting Started with Create React App
+# Campus Sustainability Dashboard
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A spatial web application for monitoring and analyzing campus sustainability metrics including solar potential, green spaces, waste management, and water conservation.
+
+## Quick Start
+
+### Installation
+
+```bash
+npm install
+```
+
+### Running the Application
+
+```bash
+npm start
+```
+
+The app will open at [http://localhost:3000](http://localhost:3000)
+
+### Demo Login
+
+**Email:** `Demo@somethingspatial.com`
+**Password:** `Demopassword`
+
+## Features
+
+- **3D Campus Viewer** - Interactive 3D model with day/night modes
+- **2D Map Analysis** - Solar potential and green space analysis using Google Solar API
+- **Dashboard** - Real-time sustainability metrics and charts
+- **Data Management** - Admin tools for editing campus data
+
+## Tech Stack
+
+- React + Material-UI
+- Three.js / React Three Fiber
+- Deck.gl for 2D mapping
+- Firebase (Authentication & Database)
+- Google Solar API
+```
+
+## Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+│   ├── 3d/             # Three.js 3D viewer components
+│   ├── admin/          # Admin management tools
+│   ├── auth/           # Authentication components
+│   ├── layout/         # Layout components
+│   └── map/            # Map analysis panels
+├── contexts/           # React contexts (Auth)entication)
+├── pages/              # Main application pages
+│   ├── Dashboard.js    # Sustainability metrics dashboard
+│   ├── MapViewer.js    # 3D campus viewer
+│   ├── Map2D.js        # 2D map with analysis tools
+│   ├── Admin.js        # Admin panel
+│   └── admin/          # Admin sub-pages
+├── services/           # API services and data
+└── theme.js            # Material-UI theme
+```
 
 ## Available Scripts
 
-In the project directory, you can run:
+- `npm start` - Run development server
+- `npm build` - Build for production
+- `npm test` - Run tests
+- `npm eject` - Eject from Create React App (one-way operation)
 
-### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)

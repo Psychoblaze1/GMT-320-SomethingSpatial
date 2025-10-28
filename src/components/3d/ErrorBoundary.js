@@ -9,14 +9,15 @@ class WebGLErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
-    // Update state so the next render will show the fallback UI
+    // If an error occurs, set the state to indicate an error to the user
     return { hasError: true, error };
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log error details for debugging
+    // Log error details for admins
     console.error('WebGL Error caught by boundary:', error, errorInfo);
   }
+
 
   render() {
     if (this.state.hasError) {

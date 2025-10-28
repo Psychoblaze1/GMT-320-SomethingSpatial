@@ -126,7 +126,7 @@ export default function Login() {
       </Paper>
       <Box mt={2} display="flex" justifyContent="center">
         <Typography variant="body2" color="text.secondary" align="center">
-          University of Pretoria Sustanability Development Monitoring System
+          Something Spatial Dashboard System
         </Typography>
       </Box>
     </Container>
