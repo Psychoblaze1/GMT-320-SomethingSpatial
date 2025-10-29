@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// TEMPORARY Firebase Storage Security Rules - FOR TESTING ONLY
+// These rules are permissive to allow testing
+// Replace with stricter rules after confirming blog functionality works
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Blog images - Temporary permissive rules for testing
+    match /blog/{allPaths=**} {
+      // Anyone can read
+      allow read: if true;
+
+      // Any authenticated user can upload (TEMPORARY - for testing)
+      allow write, delete: if request.auth != null;
+    }
+
+    // Default rule - deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

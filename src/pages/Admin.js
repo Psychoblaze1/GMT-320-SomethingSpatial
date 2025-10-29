@@ -12,11 +12,13 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PeopleIcon from '@mui/icons-material/People';
 import DatasetIcon from '@mui/icons-material/Dataset';
+import ArticleIcon from '@mui/icons-material/Article';
 import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { getAllUsers, updateUserRole } from '../services/adminService';
 import { useAuth } from '../contexts/AuthContext';
 import DataManager from './admin/DataManager';
+import BlogManager from './admin/BlogManager';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -125,6 +127,7 @@ export default function Admin() {
           <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)}>
             <Tab icon={<SettingsIcon />} label="Overview" />
             <Tab icon={<DatasetIcon />} label="Data Manager" />
+            <Tab icon={<ArticleIcon />} label="Blog" />
           </Tabs>
         </Box>
 
@@ -228,6 +231,11 @@ export default function Admin() {
         {/* Data Manager Tab */}
         <TabPanel value={currentTab} index={1}>
           <DataManager />
+        </TabPanel>
+
+        {/* Blog Tab */}
+        <TabPanel value={currentTab} index={2}>
+          <BlogManager />
         </TabPanel>
 
         {/* Role Change Confirmation Dialog */}

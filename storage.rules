@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Blog images - Allow authenticated users to read, only admins to write/delete
+    match /blog/{allPaths=**} {
+      // Anyone can read blog images (for public blog viewing)
+      allow read: if true;
+
+      // Only authenticated admin users can upload/delete blog images
+      // Check if user has admin role in Firestore users collection
+      allow write, delete: if request.auth != null &&
+                              firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Default rule - deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
