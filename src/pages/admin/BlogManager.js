@@ -68,7 +68,6 @@ export default function BlogManager() {
     excerpt: '',
     featuredImage: '',
     categories: '',
-    tags: '',
     author: ''
   });
 
@@ -102,7 +101,6 @@ export default function BlogManager() {
         excerpt: post.excerpt || '',
         featuredImage: post.featuredImage || '',
         categories: post.categories?.join(', ') || '',
-        tags: post.tags?.join(', ') || '',
         author: post.author || currentUser?.email || 'Admin'
       });
       setSelectedPost(post);
@@ -115,7 +113,6 @@ export default function BlogManager() {
         excerpt: '',
         featuredImage: '',
         categories: '',
-        tags: '',
         author: currentUser?.email || 'Admin'
       });
       setSelectedPost(null);
@@ -135,7 +132,6 @@ export default function BlogManager() {
       excerpt: '',
       featuredImage: '',
       categories: '',
-      tags: '',
       author: ''
     });
   };
@@ -179,16 +175,11 @@ export default function BlogManager() {
         return;
       }
 
-      // Parse categories and tags
+      // Parse categories
       const categories = formData.categories
         .split(',')
         .map(c => c.trim())
         .filter(c => c.length > 0);
-
-      const tags = formData.tags
-        .split(',')
-        .map(t => t.trim())
-        .filter(t => t.length > 0);
 
       const postData = {
         title: formData.title,
@@ -197,7 +188,6 @@ export default function BlogManager() {
         excerpt: formData.excerpt,
         featuredImage: formData.featuredImage,
         categories,
-        tags,
         author: formData.author || currentUser?.email || 'Admin'
       };
 
@@ -232,8 +222,7 @@ export default function BlogManager() {
   const filteredPosts = posts.filter(post =>
     post.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     post.excerpt?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    post.categories?.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    post.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    post.categories?.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -257,7 +246,7 @@ export default function BlogManager() {
           {/* Search Bar */}
           <TextField
             fullWidth
-            placeholder="Search posts by title, categories, or tags..."
+            placeholder="Search posts by title or categories..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             sx={{ mb: 3 }}
@@ -287,7 +276,6 @@ export default function BlogManager() {
                     <TableCell><strong>Title</strong></TableCell>
                     <TableCell><strong>Author</strong></TableCell>
                     <TableCell><strong>Categories</strong></TableCell>
-                    <TableCell><strong>Tags</strong></TableCell>
                     <TableCell><strong>Published</strong></TableCell>
                     <TableCell><strong>Views</strong></TableCell>
                     <TableCell align="right"><strong>Actions</strong></TableCell>
@@ -309,16 +297,6 @@ export default function BlogManager() {
                           ))}
                           {post.categories?.length > 2 && (
                             <Chip label={`+${post.categories.length - 2}`} size="small" />
-                          )}
-                        </Stack>
-                      </TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                          {post.tags?.slice(0, 2).map((tag, idx) => (
-                            <Chip key={idx} label={tag} size="small" />
-                          ))}
-                          {post.tags?.length > 2 && (
-                            <Chip label={`+${post.tags.length - 2}`} size="small" />
                           )}
                         </Stack>
                       </TableCell>
@@ -408,24 +386,13 @@ export default function BlogManager() {
             </Grid>
 
             {/* Categories */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Categories"
                 value={formData.categories}
                 onChange={(e) => handleFieldChange('categories', e.target.value)}
                 helperText="Comma-separated (e.g., News, Events)"
-              />
-            </Grid>
-
-            {/* Tags */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Tags"
-                value={formData.tags}
-                onChange={(e) => handleFieldChange('tags', e.target.value)}
-                helperText="Comma-separated (e.g., sustainability, campus)"
               />
             </Grid>
 

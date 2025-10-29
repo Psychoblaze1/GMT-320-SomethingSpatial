@@ -157,25 +157,6 @@ const BlogPostCard = ({ post }) => {
               </Box>
             )}
           </Stack>
-
-          {/* Tags */}
-          {post.tags && post.tags.length > 0 && (
-            <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-              {post.tags.slice(0, 4).map((tag, index) => (
-                <Chip
-                  key={index}
-                  label={`#${tag}`}
-                  size="small"
-                  variant="filled"
-                  sx={{
-                    fontSize: '0.7rem',
-                    height: 20,
-                    backgroundColor: 'action.hover',
-                  }}
-                />
-              ))}
-            </Box>
-          )}
         </CardContent>
       </CardActionArea>
     </Card>

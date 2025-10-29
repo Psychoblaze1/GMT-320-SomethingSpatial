@@ -17,11 +17,10 @@ import {
 } from '@mui/material';
 import {
   Search as SearchIcon,
-  Category as CategoryIcon,
-  LocalOffer as TagIcon
+  Category as CategoryIcon
 } from '@mui/icons-material';
 import BlogPostCard from '../components/blog/BlogPostCard';
-import { getBlogPosts, getCategories, getTags } from '../services/blogService';
+import { getBlogPosts, getCategories } from '../services/blogService';
 
 export default function BlogPage() {
   const [posts, setPosts] = useState([]);
@@ -29,11 +28,9 @@ export default function BlogPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedTag, setSelectedTag] = useState('');
   const [categories, setCategories] = useState([]);
-  const [tags, setTags] = useState([]);
 
-  // Load posts, categories, and tags
+  // Load posts and categories
   useEffect(() => {
     loadData();
   }, []);
@@ -41,15 +38,13 @@ export default function BlogPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [fetchedPosts, fetchedCategories, fetchedTags] = await Promise.all([
+      const [fetchedPosts, fetchedCategories] = await Promise.all([
         getBlogPosts({ status: 'published' }),
-        getCategories(),
-        getTags()
+        getCategories()
       ]);
       setPosts(fetchedPosts);
       setFilteredPosts(fetchedPosts);
       setCategories(fetchedCategories);
-      setTags(fetchedTags);
     } catch (error) {
       console.error('Error loading blog data:', error);
     } finally {
@@ -78,28 +73,16 @@ export default function BlogPage() {
       );
     }
 
-    // Apply tag filter
-    if (selectedTag) {
-      filtered = filtered.filter(post =>
-        post.tags?.includes(selectedTag)
-      );
-    }
-
     setFilteredPosts(filtered);
-  }, [searchTerm, selectedCategory, selectedTag, posts]);
+  }, [searchTerm, selectedCategory, posts]);
 
   const handleCategoryClick = (category) => {
     setSelectedCategory(selectedCategory === category ? '' : category);
   };
 
-  const handleTagClick = (tag) => {
-    setSelectedTag(selectedTag === tag ? '' : tag);
-  };
-
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedCategory('');
-    setSelectedTag('');
   };
 
   return (
@@ -138,61 +121,32 @@ export default function BlogPage() {
         </Box>
 
         {/* Filters */}
-        {(categories.length > 0 || tags.length > 0) && (
+        {categories.length > 0 && (
           <Paper sx={{ p: 3, mb: 4 }}>
             {/* Categories */}
-            {categories.length > 0 && (
-              <Box sx={{ mb: tags.length > 0 ? 2 : 0 }}>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                  <CategoryIcon fontSize="small" color="action" />
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Categories:
-                  </Typography>
-                </Stack>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {categories.map((category) => (
-                    <Chip
-                      key={category}
-                      label={category}
-                      onClick={() => handleCategoryClick(category)}
-                      color={selectedCategory === category ? 'primary' : 'default'}
-                      variant={selectedCategory === category ? 'filled' : 'outlined'}
-                      sx={{ mb: 1 }}
-                    />
-                  ))}
-                </Stack>
-              </Box>
-            )}
-
-            {categories.length > 0 && tags.length > 0 && <Divider sx={{ my: 2 }} />}
-
-            {/* Tags */}
-            {tags.length > 0 && (
-              <Box>
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                  <TagIcon fontSize="small" color="action" />
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Tags:
-                  </Typography>
-                </Stack>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {tags.map((tag) => (
-                    <Chip
-                      key={tag}
-                      label={`#${tag}`}
-                      onClick={() => handleTagClick(tag)}
-                      color={selectedTag === tag ? 'secondary' : 'default'}
-                      variant={selectedTag === tag ? 'filled' : 'outlined'}
-                      size="small"
-                      sx={{ mb: 1 }}
-                    />
-                  ))}
-                </Stack>
-              </Box>
-            )}
+            <Box>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                <CategoryIcon fontSize="small" color="action" />
+                <Typography variant="subtitle2" color="text.secondary">
+                  Categories:
+                </Typography>
+              </Stack>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                {categories.map((category) => (
+                  <Chip
+                    key={category}
+                    label={category}
+                    onClick={() => handleCategoryClick(category)}
+                    color={selectedCategory === category ? 'primary' : 'default'}
+                    variant={selectedCategory === category ? 'filled' : 'outlined'}
+                    sx={{ mb: 1 }}
+                  />
+                ))}
+              </Stack>
+            </Box>
 
             {/* Clear filters button */}
-            {(selectedCategory || selectedTag || searchTerm) && (
+            {(selectedCategory || searchTerm) && (
               <Box sx={{ mt: 2, textAlign: 'right' }}>
                 <Chip
                   label="Clear all filters"

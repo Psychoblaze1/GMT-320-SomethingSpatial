@@ -229,28 +229,6 @@ export default function BlogPostPage() {
             }}
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
-
-          <Divider sx={{ my: 4 }} />
-
-          {/* Tags */}
-          {post.tags && post.tags.length > 0 && (
-            <Box>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Tags:
-              </Typography>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {post.tags.map((tag, index) => (
-                  <Chip
-                    key={index}
-                    label={`#${tag}`}
-                    size="small"
-                    variant="filled"
-                    sx={{ backgroundColor: 'action.hover' }}
-                  />
-                ))}
-              </Stack>
-            </Box>
-          )}
         </Paper>
 
         {/* Back Button (Bottom) */}

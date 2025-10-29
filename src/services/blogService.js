@@ -156,16 +156,10 @@ export async function getBlogPosts(filters = {}) {
       posts = posts.filter(post => post.status === filters.status);
     }
 
-    // Client-side filtering for category, tag, and search
+    // Client-side filtering for category and search
     if (filters.category) {
       posts = posts.filter(post =>
         post.categories?.includes(filters.category)
-      );
-    }
-
-    if (filters.tag) {
-      posts = posts.filter(post =>
-        post.tags?.includes(filters.tag)
       );
     }
 
@@ -261,7 +255,6 @@ export async function createBlogPost(postData, userId) {
       excerpt: postData.excerpt || '',
       featuredImage: postData.featuredImage || null,
       categories: postData.categories || [],
-      tags: postData.tags || [],
       author: postData.author || 'Admin',
       authorId: userId,
       status: 'published', // Always published immediately as per requirements
@@ -375,7 +368,7 @@ export async function incrementViews(postId) {
 }
 
 // ============================================================================
-// CATEGORIES AND TAGS
+// CATEGORIES
 // ============================================================================
 
 /**
@@ -398,26 +391,6 @@ export async function getCategories() {
   }
 }
 
-/**
- * Get all unique tags from blog posts
- * @returns {Promise<Array>} - Array of tag strings
- */
-export async function getTags() {
-  try {
-    const posts = await getBlogPosts();
-    const tagsSet = new Set();
-
-    posts.forEach(post => {
-      post.tags?.forEach(tag => tagsSet.add(tag));
-    });
-
-    return Array.from(tagsSet).sort();
-  } catch (error) {
-    console.error('Error fetching tags:', error);
-    throw error;
-  }
-}
-
 // Export all functions
 const blogService = {
   // Blog posts
@@ -433,9 +406,8 @@ const blogService = {
   uploadImage,
   deleteImage,
 
-  // Categories and tags
+  // Categories
   getCategories,
-  getTags,
 
   // Utilities
   generateSlug,
