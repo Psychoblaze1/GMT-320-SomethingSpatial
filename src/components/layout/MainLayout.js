@@ -29,10 +29,11 @@ import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import EnergySavingsLeafIcon from '@mui/icons-material/EnergySavingsLeaf';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 const drawerWidth = 240;
 
-export default function MainLayout({ children, title = 'Dashboard' }) {
+export default function MainLayout({ children, title = 'Dashboard', onHelpClick }) {
   const { currentUser, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -122,6 +123,16 @@ export default function MainLayout({ children, title = 'Dashboard' }) {
               </Typography>
             )}
           </Typography>
+          {onHelpClick && (
+            <IconButton
+              color="inherit"
+              onClick={onHelpClick}
+              sx={{ mr: 1 }}
+              title="Show tutorial"
+            >
+              <HelpOutlineIcon />
+            </IconButton>
+          )}
           <Button color="inherit" onClick={handleMenuOpen} startIcon={
             <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
               {currentUser?.email?.charAt(0).toUpperCase() || <PersonIcon />}

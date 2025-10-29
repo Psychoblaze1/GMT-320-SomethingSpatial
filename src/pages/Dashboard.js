@@ -27,6 +27,7 @@ import {
   Stack
 } from '@mui/material';
 import MainLayout from '../components/layout/MainLayout';
+import WelcomeTutorial, { TUTORIAL_STORAGE_KEY } from '../components/layout/WelcomeTutorial';
 
 import SolarPowerIcon from '@mui/icons-material/SolarPower';
 import WaterDropIcon from '@mui/icons-material/WaterDrop';
@@ -768,6 +769,7 @@ const GreenSpaceDetails = ({ greenMetrics }) => {
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   const [metrics, setMetrics] = useState({
     roof: {},
     green: {},
@@ -779,6 +781,24 @@ export default function Dashboard() {
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
+
+  const handleTutorialClose = () => {
+    setTutorialOpen(false);
+    localStorage.setItem(TUTORIAL_STORAGE_KEY, 'true');
+  };
+
+  const handleHelpClick = () => {
+    setTutorialOpen(true);
+  };
+
+  // Check if user has seen tutorial before
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem(TUTORIAL_STORAGE_KEY);
+    if (!hasSeenTutorial) {
+      // Small delay so the dashboard loads first
+      setTimeout(() => setTutorialOpen(true), 500);
+    }
+  }, []);
 
   useEffect(() => {
     const loadMetrics = () => {
@@ -813,7 +833,8 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <MainLayout title="Campus Sustainability Dashboard">
+    <MainLayout title="Campus Sustainability Dashboard" onHelpClick={handleHelpClick}>
+      <WelcomeTutorial open={tutorialOpen} onClose={handleTutorialClose} />
       <Box sx={{ p: 3 }}>
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" height="70vh">
