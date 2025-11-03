@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { GoogleMapsOverlay } from '@deck.gl/google-maps';
-import { PolygonLayer, ScatterplotLayer } from '@deck.gl/layers';
+import { PolygonLayer, ScatterplotLayer, BitmapLayer } from '@deck.gl/layers';
 import {
   Box,
   Paper,
@@ -22,6 +22,7 @@ import {
 import MainLayout from '../components/layout/MainLayout';
 import {
   findClosestBuilding,
+  fetchDataLayers,
   getSolarPanelConfig,
   getBuildingInfo
 } from '../services/solarApiService';
@@ -29,13 +30,16 @@ import {
   findGreenSpaceAtPoint,
   analyzeGreenSpace
 } from '../services/greenSpaceService';
+import { getSolarFluxLayer, LAYER_TYPES } from '../services/solarGeoTiffService';
 import SolarInsightsPanel from '../components/map/SolarInsightsPanel';
 import GreenSpaceAnalysisPanel from '../components/map/GreenSpaceAnalysisPanel';
+import RainwaterHarvestingPanel from '../components/map/RainwaterHarvestingPanel';
 
 // Icons
 import LayersIcon from '@mui/icons-material/Layers';
 import SolarPowerIcon from '@mui/icons-material/SolarPower';
 import ParkIcon from '@mui/icons-material/Park';
+import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import MapIcon from '@mui/icons-material/Map';
 import SatelliteAltIcon from '@mui/icons-material/SatelliteAlt';
@@ -73,6 +77,8 @@ export default function Map2D() {
   const [solarData, setSolarData] = useState(null);
   const [loadingSolar, setLoadingSolar] = useState(false);
   const [solarError, setSolarError] = useState(null);
+  const [solarFluxLayer, setSolarFluxLayer] = useState(null);
+  const [showFluxOverlay, setShowFluxOverlay] = useState(true); // Toggle for flux visualization
 
   // Green Space Analysis state
   const [greenSpaceAnalysisMode, setGreenSpaceAnalysisMode] = useState(false);
@@ -80,6 +86,12 @@ export default function Map2D() {
   const [loadingGreenSpace, setLoadingGreenSpace] = useState(false);
   const [greenSpaceError, setGreenSpaceError] = useState(null);
   const [greenSpaceLayerData, setGreenSpaceLayerData] = useState([]);
+
+  // Rainwater Harvesting Analysis state
+  const [rainwaterAnalysisMode, setRainwaterAnalysisMode] = useState(false);
+  const [rainwaterData, setRainwaterData] = useState(null);
+  const [loadingRainwater, setLoadingRainwater] = useState(false);
+  const [rainwaterError, setRainwaterError] = useState(null);
 
   // Custom polygon drawing state
   const [drawingMode, setDrawingMode] = useState(false);
@@ -235,6 +247,7 @@ export default function Map2D() {
       setSolarData(null);
 
       try {
+        // Step 1: Get building insights
         const buildingData = await findClosestBuilding(lat, lng, GOOGLE_MAPS_API_KEY);
         const solarConfig = getSolarPanelConfig(buildingData);
         const buildingInfo = getBuildingInfo(buildingData);
@@ -245,9 +258,33 @@ export default function Map2D() {
           buildingInfo
         });
 
+        // Step 2: Fetch GeoTIFF data layers separately
+        let hasFluxLayer = true;
+        try {
+          console.log('Fetching GeoTIFF data layers...');
+          // Use HIGH quality for most regions (US, Europe, South Africa, etc.)
+          // Only use BASE + EXPANDED_COVERAGE for Latin America
+          const dataLayers = await fetchDataLayers(lat, lng, GOOGLE_MAPS_API_KEY, {
+            radiusMeters: 50,
+            requiredQuality: 'HIGH',
+            useExpandedCoverage: true
+          });
+
+          console.log('Data layers received, fetching solar flux layer...');
+          const fluxLayer = await getSolarFluxLayer(dataLayers, GOOGLE_MAPS_API_KEY, LAYER_TYPES.ANNUAL_FLUX);
+          console.log('Solar flux layer received:', fluxLayer);
+          setSolarFluxLayer(fluxLayer);
+          hasFluxLayer = true;
+          console.log('Solar flux layer state updated');
+        } catch (fluxError) {
+          console.error('Could not load solar flux overlay:', fluxError);
+          // Continue without flux overlay - not critical
+        }
+
+        // Show completion message (works with or without flux overlay)
         setSnackbar({
           open: true,
-          message: 'Solar analysis complete!',
+          message: hasFluxLayer ? 'Solar analysis complete with heat map!' : 'Solar analysis complete!',
           severity: 'success'
         });
       } catch (error) {
@@ -340,6 +377,59 @@ export default function Map2D() {
       }
     };
   }, [map, greenSpaceAnalysisMode, drawingMode, drawnPoints]);
+
+  // Add Rainwater Harvesting Analysis click handler to map
+  useEffect(() => {
+    if (!map || !rainwaterAnalysisMode) return;
+
+    const clickListener = map.addListener('click', async (event) => {
+      if (!event || !event.latLng) {
+        console.error('Invalid click event:', event);
+        return;
+      }
+
+      const lat = event.latLng.lat();
+      const lng = event.latLng.lng();
+
+      setLoadingRainwater(true);
+      setRainwaterError(null);
+      setRainwaterData(null);
+
+      try {
+        // Use Google Solar API to find building (same as solar mode)
+        const buildingData = await findClosestBuilding(lat, lng, GOOGLE_MAPS_API_KEY);
+        const buildingInfo = getBuildingInfo(buildingData);
+
+        setRainwaterData({
+          buildingData,
+          buildingInfo
+        });
+
+        setSnackbar({
+          open: true,
+          message: 'Rainwater analysis complete!',
+          severity: 'success'
+        });
+      } catch (error) {
+        console.error('Rainwater analysis error:', error);
+        setRainwaterError(error.message);
+        setSnackbar({
+          open: true,
+          message: error.message,
+          severity: 'error'
+        });
+      } finally {
+        setLoadingRainwater(false);
+      }
+    });
+
+    // Cleanup listener
+    return () => {
+      if (clickListener) {
+        window.google.maps.event.removeListener(clickListener);
+      }
+    };
+  }, [map, rainwaterAnalysisMode]);
 
   // Handle map type change
   const handleMapTypeChange = (newType) => {
@@ -505,6 +595,29 @@ export default function Map2D() {
       );
     }
 
+    // Solar flux heat map overlay (GeoTIFF)
+    if (showFluxOverlay && solarFluxLayer && solarData) {
+      console.log('✅ Adding solar flux heat map layer to map:', {
+        bounds: solarFluxLayer.bounds,
+        boundsFormat: Array.isArray(solarFluxLayer.bounds) ?
+          (Array.isArray(solarFluxLayer.bounds[0]) ? 'nested array (wrong)' : 'flat array (correct)') : 'invalid',
+        width: solarFluxLayer.width,
+        height: solarFluxLayer.height,
+        hasDataUrl: !!solarFluxLayer.dataUrl
+      });
+
+      layerArray.push(
+        new BitmapLayer({
+          id: 'solar-flux-heatmap',
+          image: solarFluxLayer.dataUrl,
+          bounds: solarFluxLayer.bounds,
+          opacity: 0.7,
+          pickable: false,
+          desaturate: 0  // Keep colors vibrant
+        })
+      );
+    }
+
     // Solar API building highlight layer
     if (solarData?.buildingInfo?.center) {
       layerArray.push(
@@ -590,8 +703,53 @@ export default function Map2D() {
       );
     }
 
+    // Rainwater harvesting building highlight - show detected building
+    if (rainwaterData?.buildingInfo?.center) {
+      layerArray.push(
+        new ScatterplotLayer({
+          id: 'rainwater-building-highlight',
+          data: [{
+            position: [rainwaterData.buildingInfo.center.longitude, rainwaterData.buildingInfo.center.latitude],
+            area: rainwaterData.buildingData.solarPotential?.wholeRoofStats?.areaMeters2 || 0
+          }],
+          pickable: false,
+          opacity: 0.7,
+          stroked: true,
+          filled: true,
+          radiusScale: 6,
+          radiusMinPixels: 20,
+          radiusMaxPixels: 60,
+          lineWidthMinPixels: 3,
+          getPosition: d => d.position,
+          getRadius: d => Math.max(15, Math.sqrt(d.area) / 2),
+          getFillColor: [33, 150, 243, 150], // Blue
+          getLineColor: [21, 101, 192, 255] // Dark blue border
+        })
+      );
+
+      // Add pulsing effect for detected building
+      layerArray.push(
+        new ScatterplotLayer({
+          id: 'rainwater-building-pulse',
+          data: [{
+            position: [rainwaterData.buildingInfo.center.longitude, rainwaterData.buildingInfo.center.latitude]
+          }],
+          pickable: false,
+          opacity: 0.3,
+          stroked: false,
+          filled: true,
+          radiusScale: 8,
+          radiusMinPixels: 30,
+          radiusMaxPixels: 80,
+          getPosition: d => d.position,
+          getRadius: 20,
+          getFillColor: [33, 150, 243, 80]
+        })
+      );
+    }
+
     return layerArray;
-  }, [greenSpaceLayerData, solarData, greenSpaceData, drawingMode, drawnPoints, customPolygon, greenSpaceAnalysisMode]);
+  }, [greenSpaceLayerData, solarData, solarFluxLayer, showFluxOverlay, greenSpaceData, drawingMode, drawnPoints, customPolygon, greenSpaceAnalysisMode, rainwaterAnalysisMode, rainwaterData]);
 
   // Update deck.gl overlay when layers change
   useEffect(() => {
@@ -667,15 +825,22 @@ export default function Map2D() {
                         const isEnabled = e.target.checked;
                         setSolarAnalysisMode(isEnabled);
 
-                        // Disable green space mode if enabling solar mode
-                        if (isEnabled && greenSpaceAnalysisMode) {
-                          setGreenSpaceAnalysisMode(false);
-                          setGreenSpaceData(null);
+                        // Disable other modes if enabling solar mode
+                        if (isEnabled) {
+                          if (greenSpaceAnalysisMode) {
+                            setGreenSpaceAnalysisMode(false);
+                            setGreenSpaceData(null);
+                          }
+                          if (rainwaterAnalysisMode) {
+                            setRainwaterAnalysisMode(false);
+                            setRainwaterData(null);
+                          }
                         }
 
                         if (!isEnabled) {
                           setSolarData(null);
                           setSolarError(null);
+                          setSolarFluxLayer(null);
                         } else {
                           setSnackbar({
                             open: true,
@@ -696,9 +861,29 @@ export default function Map2D() {
                   }
                 />
                 {solarAnalysisMode && (
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, ml: 4 }}>
-                    Click any building to analyze solar potential
-                  </Typography>
+                  <>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, ml: 4 }}>
+                      Click any building to analyze solar potential
+                    </Typography>
+                    {solarFluxLayer && (
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={showFluxOverlay}
+                            onChange={(e) => setShowFluxOverlay(e.target.checked)}
+                            size="small"
+                            color="warning"
+                          />
+                        }
+                        label={
+                          <Typography variant="caption">
+                            Show Solar Flux Heat Map
+                          </Typography>
+                        }
+                        sx={{ mt: 1, ml: 2 }}
+                      />
+                    )}
+                  </>
                 )}
               </Box>
 
@@ -712,10 +897,16 @@ export default function Map2D() {
                         const isEnabled = e.target.checked;
                         setGreenSpaceAnalysisMode(isEnabled);
 
-                        // Disable solar mode if enabling green space mode
-                        if (isEnabled && solarAnalysisMode) {
-                          setSolarAnalysisMode(false);
-                          setSolarData(null);
+                        // Disable other modes if enabling green space mode
+                        if (isEnabled) {
+                          if (solarAnalysisMode) {
+                            setSolarAnalysisMode(false);
+                            setSolarData(null);
+                          }
+                          if (rainwaterAnalysisMode) {
+                            setRainwaterAnalysisMode(false);
+                            setRainwaterData(null);
+                          }
                         }
 
                         if (!isEnabled) {
@@ -787,6 +978,57 @@ export default function Map2D() {
                   </Box>
                 )}
               </Box>
+
+              {/* Rainwater Harvesting Analysis Mode */}
+              <Box>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={rainwaterAnalysisMode}
+                      onChange={(e) => {
+                        const isEnabled = e.target.checked;
+                        setRainwaterAnalysisMode(isEnabled);
+
+                        // Disable other modes if enabling rainwater mode
+                        if (isEnabled) {
+                          if (solarAnalysisMode) {
+                            setSolarAnalysisMode(false);
+                            setSolarData(null);
+                          }
+                          if (greenSpaceAnalysisMode) {
+                            setGreenSpaceAnalysisMode(false);
+                            setGreenSpaceData(null);
+                          }
+                        }
+
+                        if (!isEnabled) {
+                          setRainwaterData(null);
+                          setRainwaterError(null);
+                        } else {
+                          setSnackbar({
+                            open: true,
+                            message: 'Click any building to analyze rainwater harvesting potential',
+                            severity: 'info'
+                          });
+                        }
+                      }}
+                      size="small"
+                      color="info"
+                    />
+                  }
+                  label={
+                    <Box display="flex" alignItems="center" gap={0.5}>
+                      <WaterDropIcon fontSize="small" color={rainwaterAnalysisMode ? 'info' : 'action'} />
+                      <Typography variant="body2">Rainwater Analysis Mode</Typography>
+                    </Box>
+                  }
+                />
+                {rainwaterAnalysisMode && (
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, ml: 4 }}>
+                    Click any building to see rainwater collection potential
+                  </Typography>
+                )}
+              </Box>
             </Stack>
           </Paper>
         </Fade>
@@ -826,6 +1068,7 @@ export default function Map2D() {
               setSolarData(null);
               setSolarError(null);
               setLoadingSolar(false);
+              setSolarFluxLayer(null);
             }}
           />
         )}
@@ -841,6 +1084,19 @@ export default function Map2D() {
               setGreenSpaceError(null);
               setLoadingGreenSpace(false);
               setCustomPolygon(null); // Clear custom polygon to remove highlights
+            }}
+          />
+        )}
+
+        {/* Rainwater Harvesting Analysis Panel */}
+        {(rainwaterAnalysisMode && (loadingRainwater || rainwaterData || rainwaterError)) && (
+          <RainwaterHarvestingPanel
+            solarBuildingData={rainwaterData?.buildingData}
+            buildingInfo={rainwaterData?.buildingInfo}
+            onClose={() => {
+              setRainwaterData(null);
+              setRainwaterError(null);
+              setLoadingRainwater(false);
             }}
           />
         )}

@@ -47,7 +47,7 @@ function SceneBackground({ isNight }) {
   return null;
 }
 
-function CampusModel({ modelPath, onMeshClick, onBinClick, onClearSelectionRef, onBuildingsExtracted }) {
+function CampusModel({ modelPath, onMeshClick, onBinClick, onClearSelectionRef, onBuildingsExtracted, onHighlightBuildingRef }) {
   let gltf;
   try {
     gltf = useGLTF(modelPath);
@@ -60,6 +60,53 @@ function CampusModel({ modelPath, onMeshClick, onBinClick, onClearSelectionRef, 
   const [initialized, setInitialized] = useState(false);
   const [selectedMesh, setSelectedMesh] = useState(null);
   const [originalMaterial, setOriginalMaterial] = useState(null);
+
+  const flashBuilding = (mesh) => {
+    const highlightColor = 0x4caf50;
+    const flashDuration = 500; // ms
+    const flashIntensity = 2;
+
+    const startTime = Date.now();
+
+    const animateFlash = () => {
+        const elapsedTime = Date.now() - startTime;
+        const progress = elapsedTime / flashDuration;
+
+        if (progress < 1) {
+            const intensity = Math.sin(progress * Math.PI) * flashIntensity;
+            mesh.material.emissiveIntensity = intensity;
+            mesh.material.emissive.setHex(highlightColor);
+            requestAnimationFrame(animateFlash);
+        } else {
+            mesh.material.emissiveIntensity = 0.5;
+        }
+    };
+
+    animateFlash();
+  };
+
+  const highlightBuilding = (mesh) => {
+    if (selectedMesh && originalMaterial) {
+      selectedMesh.material = originalMaterial;
+    }
+
+    if (mesh.material) {
+      const original = mesh.material.clone();
+      setOriginalMaterial(original);
+      setSelectedMesh(mesh);
+
+      const highlightedMaterial = mesh.material.clone();
+      mesh.material = highlightedMaterial;
+      
+      flashBuilding(mesh);
+    }
+  };
+
+  useEffect(() => {
+    if (onHighlightBuildingRef) {
+      onHighlightBuildingRef.current = highlightBuilding;
+    }
+  }, [selectedMesh, originalMaterial, onHighlightBuildingRef]);
 
   // Expose clearSelection function to parent
   useEffect(() => {
@@ -261,25 +308,7 @@ function CampusModel({ modelPath, onMeshClick, onBinClick, onClearSelectionRef, 
           layerId: layerId
         };
 
-        // Reset previous selection
-        if (selectedMesh && originalMaterial) {
-          selectedMesh.material = originalMaterial;
-        }
-
-        // Apply green highlight for buildings
-        if (mesh.material &&
-            (!mesh.material.emissive ||
-             (mesh.material.emissive.r === 0 && mesh.material.emissive.g === 0 && mesh.material.emissive.b === 0))) {
-          const original = mesh.material.clone();
-          setOriginalMaterial(original);
-          setSelectedMesh(mesh);
-
-          // Create highlighted material with green glow
-          const highlightedMaterial = mesh.material.clone();
-          highlightedMaterial.emissive = new THREE.Color(0x4caf50); // Green glow
-          highlightedMaterial.emissiveIntensity = 0.5;
-          mesh.material = highlightedMaterial;
-        }
+        highlightBuilding(mesh);
 
         // Clear bin selection and show building panel
         if (onBinClick) onBinClick(null);
@@ -297,13 +326,14 @@ function CampusModel({ modelPath, onMeshClick, onBinClick, onClearSelectionRef, 
 }
 
 
-function Scene({ isNight, onMeshClick, onBinClick, onClearSelectionRef, onBuildingsExtracted }) {
+function Scene({ isNight, onMeshClick, onBinClick, onClearSelectionRef, onBuildingsExtracted, cameraRef, controlsRef, onHighlightBuildingRef }) {
   return (
     <>
       <SceneBackground isNight={isNight} />
 
-      <PerspectiveCamera makeDefault position={[100, 100, 100]} fov={60} />
+      <PerspectiveCamera makeDefault position={[100, 100, 100]} fov={60} ref={cameraRef} />
       <OrbitControls
+        ref={controlsRef}
         enablePan={true}
         enableZoom={true}
         enableRotate={true}
@@ -361,6 +391,7 @@ function Scene({ isNight, onMeshClick, onBinClick, onClearSelectionRef, onBuildi
           onBinClick={onBinClick}
           onClearSelectionRef={onClearSelectionRef}
           onBuildingsExtracted={onBuildingsExtracted}
+          onHighlightBuildingRef={onHighlightBuildingRef}
         />
       </Suspense>
     </>
@@ -378,6 +409,56 @@ export default function CampusModelViewer({ binMetrics }) {
   const clearSelectionRef = useRef(null);
   const cameraRef = useRef(null);
   const controlsRef = useRef(null);
+  const highlightBuildingRef = useRef(null);
+
+  useEffect(() => {
+    if (!searchValue || !cameraRef.current || !controlsRef.current) {
+      return;
+    }
+
+    const mesh = searchValue.mesh;
+    if (!mesh) return;
+
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+
+    const box = new THREE.Box3().setFromObject(mesh);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    const cameraDistance = Math.abs(maxDim / Math.sin(fov / 2)) * 2.5; 
+
+    const newCameraPosition = new THREE.Vector3(
+        center.x + cameraDistance * 0.6,
+        center.y + cameraDistance * 0.8,
+        center.z + cameraDistance * 0.6,
+    );
+
+    const animationDuration = 1000; 
+    const startTime = Date.now();
+
+    const initialCameraPosition = camera.position.clone();
+    const initialTarget = controls.target.clone();
+
+    const animate = () => {
+        const elapsedTime = Date.now() - startTime;
+        const progress = Math.min(elapsedTime / animationDuration, 1);
+        
+        const easeProgress = 1 - Math.pow(1 - progress, 3); 
+
+        camera.position.lerpVectors(initialCameraPosition, newCameraPosition, easeProgress);
+        controls.target.lerpVectors(initialTarget, center, easeProgress);
+        controls.update();
+
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        }
+    };
+
+    animate();
+
+}, [searchValue, cameraRef, controlsRef]);
 
   const handleMeshClick = (objectData) => {
     setSelectedObject(objectData);
@@ -417,15 +498,13 @@ export default function CampusModelViewer({ binMetrics }) {
 
     setSearchValue(building);
 
-    // Get the building's mesh and position
     const mesh = building.mesh;
     if (!mesh) return;
 
-    // Get world position of the building
-    const worldPosition = new THREE.Vector3();
-    mesh.getWorldPosition(worldPosition);
+    if (highlightBuildingRef.current) {
+      highlightBuildingRef.current(mesh);
+    }
 
-    // Extract building data
     const properties = mesh.userData?.properties || [];
     const objectData = {
       id: properties[0] || 'N/A',
@@ -435,10 +514,7 @@ export default function CampusModelViewer({ binMetrics }) {
       layerId: mesh.userData?.layerId
     };
 
-    // Show the attributes panel and trigger highlight
     handleMeshClick(objectData);
-
-    console.log(`Selected building: ${building.name} at position`, worldPosition);
   };
 
 
@@ -743,6 +819,9 @@ export default function CampusModelViewer({ binMetrics }) {
             onBinClick={handleBinClick}
             onClearSelectionRef={clearSelectionRef}
             onBuildingsExtracted={handleBuildingsExtracted}
+            cameraRef={cameraRef}
+            controlsRef={controlsRef}
+            onHighlightBuildingRef={highlightBuildingRef}
           />
         </Suspense>
       </Canvas>

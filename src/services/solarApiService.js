@@ -1,3 +1,5 @@
+import { geoTiffCache } from '../utils/geoTiffCache';
+
 const SOLAR_API_BASE_URL = 'https://solar.googleapis.com/v1';
 
 // Cache results for 24 hours to avoid hitting API limits
@@ -21,6 +23,9 @@ export async function findClosestBuilding(lat, lng, apiKey, requiredQuality = 'M
     'key': apiKey
   });
 
+  // Note: GeoTIFF data layers are included automatically when available
+  // They appear in solarPotential.dataLayers if imagery is processed
+
   const url = `${SOLAR_API_BASE_URL}/buildingInsights:findClosest?${params}`;
 
   try {
@@ -39,6 +44,12 @@ export async function findClosestBuilding(lat, lng, apiKey, requiredQuality = 'M
 
     const data = await response.json();
 
+    // Log whether data layers are available
+    console.log(
+      'Solar API response received. Data layers available:',
+      (data.solarPotential?.dataLayers ?? null) !== null
+    );
+
     buildingCache.set(cacheKey, {
       data,
       timestamp: Date.now()
@@ -47,6 +58,121 @@ export async function findClosestBuilding(lat, lng, apiKey, requiredQuality = 'M
     return data;
   } catch (error) {
     console.error('Solar API Error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch GeoTIFF data layers for a location
+ * This returns URLs for downloadable TIFF files including DSM, RGB, mask, flux, and shade data
+ *
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @param {string} apiKey - Google Solar API key
+ * @param {object} options - Optional parameters
+ * @param {number} options.radiusMeters - Radius in meters (default: 50)
+ * @param {string} options.requiredQuality - Quality level: HIGH, MEDIUM, LOW, BASE (default: BASE)
+ * @param {boolean} options.useExpandedCoverage - Enable experimental expanded coverage (default: true)
+ * @returns {Promise<object>} Data layers response with GeoTIFF URLs
+ */
+export async function fetchDataLayers(lat, lng, apiKey, options = {}) {
+  const {
+    radiusMeters = 50,
+    requiredQuality = 'BASE',
+    useExpandedCoverage = true
+  } = options;
+
+  // Check cache first
+  const cachedData = await geoTiffCache.getDataLayers(lat, lng, radiusMeters);
+  if (cachedData) {
+    console.log('✅ Returning cached dataLayers response');
+    return cachedData;
+  }
+
+  console.log('📡 No cache found, fetching from API...');
+
+  // Note: Google's API expects snake_case parameter names, not camelCase
+  const params = new URLSearchParams({
+    'location.latitude': lat.toString(),
+    'location.longitude': lng.toString(),
+    'radius_meters': radiusMeters.toString(),      // snake_case!
+    'required_quality': requiredQuality,            // snake_case!
+    'key': apiKey
+  });
+
+  // Add experimental expanded coverage for broader availability
+  if (useExpandedCoverage) {
+    params.append('experiments', 'EXPANDED_COVERAGE');
+  }
+
+  const url = `${SOLAR_API_BASE_URL}/dataLayers:get?${params}`;
+
+  console.log('Request parameters:', {
+    lat,
+    lng,
+    radiusMeters,
+    requiredQuality,
+    useExpandedCoverage
+  });
+
+  try {
+    console.log(`Fetching data layers for (${lat.toFixed(6)}, ${lng.toFixed(6)}) with radius ${radiusMeters}m, quality ${requiredQuality}`);
+    console.log('Full API URL:', url.replace(apiKey, 'API_KEY_HIDDEN'));
+
+    // Show exact URL parameters being sent
+    console.log('URL Parameters:', params.toString());
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      // Get detailed error information
+      const errorText = await response.text();
+      console.error('❌ Data Layers API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+        url: url.replace(apiKey, 'API_KEY_HIDDEN')
+      });
+
+      if (response.status === 404) {
+        throw new Error('No solar imagery data available for this location. High-resolution imagery may not be processed yet. Try changing requiredQuality to BASE for broader coverage.');
+      }
+      if (response.status === 429) {
+        throw new Error('API rate limit exceeded (600 queries/min). Please try again later.');
+      }
+
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        throw new Error(`Data Layers API Error: ${response.status} ${response.statusText}`);
+      }
+
+      throw new Error(errorData?.error?.message || `Data Layers API Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Validate that we received the expected data structure
+    if (!data.dsmUrl && !data.rgbUrl && !data.annualFluxUrl) {
+      console.warn('Data layers response missing expected URLs:', data);
+      throw new Error('Incomplete data layers response from API');
+    }
+
+    console.log('Data layers received:', {
+      imageryDate: data.imageryDate,
+      imageryQuality: data.imageryQuality,
+      hasFlux: !!data.annualFluxUrl,
+      hasMonthlyFlux: !!data.monthlyFluxUrl,
+      hourlyShadeUrls: data.hourlyShadeUrls?.length || 0
+    });
+
+    // Cache the response
+    await geoTiffCache.setDataLayers(lat, lng, radiusMeters, data);
+
+    return data;
+  } catch (error) {
+    console.error('Data Layers API Error:', error);
     throw error;
   }
 }
