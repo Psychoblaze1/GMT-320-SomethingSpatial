@@ -22,33 +22,61 @@ class GeoTiffCache {
    */
   async initDB() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      console.log('🔧 Initializing IndexedDB...');
 
-      request.onerror = () => {
-        console.error('Failed to open IndexedDB:', request.error);
-        reject(request.error);
-      };
+      // Check if IndexedDB is available
+      if (!window.indexedDB) {
+        console.warn('⚠️ IndexedDB not available in this browser');
+        resolve(null);
+        return;
+      }
 
-      request.onsuccess = () => {
-        this.db = request.result;
-        resolve(this.db);
-      };
+      try {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
+        request.onerror = () => {
+          console.error('❌ Failed to open IndexedDB:', request.error);
+          this.db = null;
+          resolve(null); // Resolve with null instead of rejecting to allow app to continue
+        };
 
-        // Store for dataLayers API responses
-        if (!db.objectStoreNames.contains(DATA_LAYERS_STORE)) {
-          const dataLayersStore = db.createObjectStore(DATA_LAYERS_STORE, { keyPath: 'key' });
-          dataLayersStore.createIndex('timestamp', 'timestamp', { unique: false });
-        }
+        request.onsuccess = () => {
+          console.log('✅ IndexedDB initialized successfully');
+          this.db = request.result;
+          resolve(this.db);
+        };
 
-        // Store for downloaded GeoTIFF binary data
-        if (!db.objectStoreNames.contains(GEOTIFF_STORE)) {
-          const geoTiffStore = db.createObjectStore(GEOTIFF_STORE, { keyPath: 'url' });
-          geoTiffStore.createIndex('timestamp', 'timestamp', { unique: false });
-        }
-      };
+        request.onupgradeneeded = (event) => {
+          console.log('🔄 Upgrading IndexedDB schema...');
+          const db = event.target.result;
+
+          // Store for dataLayers API responses
+          if (!db.objectStoreNames.contains(DATA_LAYERS_STORE)) {
+            const dataLayersStore = db.createObjectStore(DATA_LAYERS_STORE, { keyPath: 'key' });
+            dataLayersStore.createIndex('timestamp', 'timestamp', { unique: false });
+            console.log('✅ Created dataLayers store');
+          }
+
+          // Store for downloaded GeoTIFF binary data
+          if (!db.objectStoreNames.contains(GEOTIFF_STORE)) {
+            const geoTiffStore = db.createObjectStore(GEOTIFF_STORE, { keyPath: 'url' });
+            geoTiffStore.createIndex('timestamp', 'timestamp', { unique: false });
+            console.log('✅ Created geoTiffData store');
+          }
+        };
+
+        // Add timeout to prevent hanging on open()
+        setTimeout(() => {
+          if (!this.db) {
+            console.warn('⏱️ IndexedDB initialization timeout');
+            resolve(null);
+          }
+        }, 3000);
+      } catch (error) {
+        console.error('❌ Error initializing IndexedDB:', error);
+        this.db = null;
+        resolve(null);
+      }
     });
   }
 
@@ -67,10 +95,25 @@ class GeoTiffCache {
    */
   async getDataLayers(lat, lng, radiusMeters = 50) {
     try {
-      await this.initPromise;
-      if (!this.db) return null;
+      console.log('🗄️ Checking cache for dataLayers...');
+
+      // Add timeout to prevent hanging indefinitely
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => {
+          console.warn('⏱️ Cache check timeout - proceeding without cache');
+          resolve(null);
+        }, 2000); // 2 second timeout
+      });
+
+      const initResult = await Promise.race([this.initPromise, timeoutPromise]);
+
+      if (!initResult && !this.db) {
+        console.log('🚫 Cache not available, skipping');
+        return null;
+      }
 
       const key = this.generateLocationKey(lat, lng, radiusMeters);
+      console.log('🔑 Cache key:', key);
 
       return new Promise((resolve, reject) => {
         const transaction = this.db.transaction([DATA_LAYERS_STORE], 'readonly');
@@ -81,6 +124,7 @@ class GeoTiffCache {
           const result = request.result;
 
           if (!result) {
+            console.log('❌ No cache entry found');
             resolve(null);
             return;
           }
@@ -88,24 +132,24 @@ class GeoTiffCache {
           // Check if cache has expired
           const age = Date.now() - result.timestamp;
           if (age > CACHE_TTL_MS) {
-            console.log('DataLayers cache expired for', key);
+            console.log('⏰ DataLayers cache expired for', key);
             // Clean up expired entry
             this.deleteDataLayers(lat, lng, radiusMeters);
             resolve(null);
             return;
           }
 
-          console.log('DataLayers cache hit for', key, `(age: ${Math.round(age / (24 * 60 * 60 * 1000))} days)`);
+          console.log('✅ DataLayers cache hit for', key, `(age: ${Math.round(age / (24 * 60 * 60 * 1000))} days)`);
           resolve(result.data);
         };
 
         request.onerror = () => {
-          console.error('Error reading from cache:', request.error);
+          console.error('❌ Error reading from cache:', request.error);
           reject(request.error);
         };
       });
     } catch (error) {
-      console.error('Error accessing dataLayers cache:', error);
+      console.error('❌ Error accessing dataLayers cache:', error);
       return null;
     }
   }
@@ -177,8 +221,22 @@ class GeoTiffCache {
    */
   async getGeoTiff(url) {
     try {
-      await this.initPromise;
-      if (!this.db) return null;
+      console.log('🗄️ Checking cache for GeoTIFF...');
+
+      // Add timeout to prevent hanging indefinitely
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => {
+          console.warn('⏱️ GeoTIFF cache check timeout - proceeding without cache');
+          resolve(null);
+        }, 2000); // 2 second timeout
+      });
+
+      const initResult = await Promise.race([this.initPromise, timeoutPromise]);
+
+      if (!initResult && !this.db) {
+        console.log('🚫 Cache not available, skipping');
+        return null;
+      }
 
       return new Promise((resolve, reject) => {
         const transaction = this.db.transaction([GEOTIFF_STORE], 'readonly');
@@ -189,6 +247,7 @@ class GeoTiffCache {
           const result = request.result;
 
           if (!result) {
+            console.log('❌ No GeoTIFF cache entry found');
             resolve(null);
             return;
           }
@@ -196,24 +255,24 @@ class GeoTiffCache {
           // Check if cache has expired
           const age = Date.now() - result.timestamp;
           if (age > CACHE_TTL_MS) {
-            console.log('GeoTIFF cache expired for', url.substring(0, 80) + '...');
+            console.log('⏰ GeoTIFF cache expired for', url.substring(0, 80) + '...');
             // Clean up expired entry
             this.deleteGeoTiff(url);
             resolve(null);
             return;
           }
 
-          console.log('GeoTIFF cache hit for', url.substring(0, 80) + '...');
+          console.log('✅ GeoTIFF cache hit for', url.substring(0, 80) + '...');
           resolve(result.data);
         };
 
         request.onerror = () => {
-          console.error('Error reading GeoTIFF from cache:', request.error);
+          console.error('❌ Error reading GeoTIFF from cache:', request.error);
           reject(request.error);
         };
       });
     } catch (error) {
-      console.error('Error accessing GeoTIFF cache:', error);
+      console.error('❌ Error accessing GeoTIFF cache:', error);
       return null;
     }
   }

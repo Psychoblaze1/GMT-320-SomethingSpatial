@@ -10,13 +10,31 @@ import {
   IconButton,
   LinearProgress,
   Tooltip,
-  Alert
+  Alert,
+  Tabs,
+  Tab
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import SolarPowerIcon from '@mui/icons-material/SolarPower';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import InfoIcon from '@mui/icons-material/Info';
 import Co2Icon from '@mui/icons-material/Co2';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
+import PaletteIcon from '@mui/icons-material/Palette';
+
+// TabPanel component for managing tab content
+function TabPanel({ children, value, index }) {
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`solar-tabpanel-${index}`}
+      aria-labelledby={`solar-tab-${index}`}
+    >
+      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+    </div>
+  );
+}
 
 export default function SolarInsightsPanel({
   buildingData,
@@ -26,6 +44,7 @@ export default function SolarInsightsPanel({
   loading = false,
   error = null
 }) {
+  const [activeTab, setActiveTab] = React.useState(0);
 
   if (loading) {
     return (
@@ -147,10 +166,20 @@ export default function SolarInsightsPanel({
           />
         )}
 
-        <Divider sx={{ my: 2 }} />
+        {/* Tabs */}
+        <Tabs
+          value={activeTab}
+          onChange={(e, newValue) => setActiveTab(newValue)}
+          variant="fullWidth"
+          sx={{ borderBottom: 1, borderColor: 'divider', mb: 1 }}
+        >
+          <Tab icon={<AnalyticsIcon />} label="Analysis" />
+          <Tab icon={<PaletteIcon />} label="Legend" />
+        </Tabs>
 
-        {/* Main Content */}
-        <Stack spacing={2.5}>
+        {/* Tab 1: Analysis */}
+        <TabPanel value={activeTab} index={0}>
+          <Stack spacing={2.5}>
           {/* Max Solar Potential */}
           <Box>
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
@@ -281,17 +310,131 @@ export default function SolarInsightsPanel({
               </Typography>
             </Box>
           )}
-        </Stack>
+          </Stack>
 
-        {/* Action Hint */}
-        <Box sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
-          <Typography variant="caption" color="text.secondary" display="flex" alignItems="center" gap={0.5}>
-            <Tooltip title="Click anywhere on the map to analyze another building">
-              <InfoIcon fontSize="small" />
-            </Tooltip>
-            Click the map to analyze another building
-          </Typography>
-        </Box>
+          {/* Action Hint */}
+          <Box sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+            <Typography variant="caption" color="text.secondary" display="flex" alignItems="center" gap={0.5}>
+              <Tooltip title="Click anywhere on the map to analyze another building">
+                <InfoIcon fontSize="small" />
+              </Tooltip>
+              Click the map to analyze another building
+            </Typography>
+          </Box>
+        </TabPanel>
+
+        {/* Tab 2: Legend */}
+        <TabPanel value={activeTab} index={1}>
+          <Stack spacing={2}>
+            <Typography variant="subtitle2" gutterBottom>
+              Solar Flux Heat Map Color Scale
+            </Typography>
+
+            <Typography variant="caption" color="text.secondary">
+              The heat map shows annual solar irradiance potential in kWh/kW/year.
+              Warmer colors indicate higher solar energy potential.
+            </Typography>
+
+            {/* Color Scale Gradient Bars */}
+            <Stack spacing={1.5} sx={{ mt: 1 }}>
+              {/* Low - Blue to Cyan */}
+              <Box>
+                <Box
+                  sx={{
+                    height: 30,
+                    background: 'linear-gradient(to right, rgb(0, 0, 255), rgb(0, 255, 255))',
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: 'divider'
+                  }}
+                />
+                <Box display="flex" justifyContent="space-between" mt={0.5}>
+                  <Typography variant="caption" fontWeight="bold">
+                    0 - 450
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    kWh/kW/year
+                  </Typography>
+                </Box>
+                <Typography variant="caption" color="primary.main">
+                  Low Solar Potential
+                </Typography>
+              </Box>
+
+              {/* Moderate - Cyan to Green */}
+              <Box>
+                <Box
+                  sx={{
+                    height: 30,
+                    background: 'linear-gradient(to right, rgb(0, 255, 255), rgb(0, 255, 0))',
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: 'divider'
+                  }}
+                />
+                <Box display="flex" justifyContent="space-between" mt={0.5}>
+                  <Typography variant="caption" fontWeight="bold">
+                    450 - 900
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    kWh/kW/year
+                  </Typography>
+                </Box>
+                <Typography variant="caption" color="info.main">
+                  Moderate Potential
+                </Typography>
+              </Box>
+
+              {/* Good - Green to Yellow */}
+              <Box>
+                <Box
+                  sx={{
+                    height: 30,
+                    background: 'linear-gradient(to right, rgb(0, 255, 0), rgb(255, 255, 0))',
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: 'divider'
+                  }}
+                />
+                <Box display="flex" justifyContent="space-between" mt={0.5}>
+                  <Typography variant="caption" fontWeight="bold">
+                    900 - 1350
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    kWh/kW/year
+                  </Typography>
+                </Box>
+                <Typography variant="caption" color="success.main">
+                  Good Potential
+                </Typography>
+              </Box>
+
+              {/* Excellent - Yellow to Red */}
+              <Box>
+                <Box
+                  sx={{
+                    height: 30,
+                    background: 'linear-gradient(to right, rgb(255, 255, 0), rgb(255, 0, 0))',
+                    borderRadius: 1,
+                    border: '1px solid',
+                    borderColor: 'divider'
+                  }}
+                />
+                <Box display="flex" justifyContent="space-between" mt={0.5}>
+                  <Typography variant="caption" fontWeight="bold">
+                    1350 - 1800+
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    kWh/kW/year
+                  </Typography>
+                </Box>
+                <Typography variant="caption" color="error.main">
+                  Excellent Potential
+                </Typography>
+              </Box>
+            </Stack>
+          </Stack>
+        </TabPanel>
       </CardContent>
     </Card>
   );

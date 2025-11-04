@@ -259,26 +259,50 @@ export default function Map2D() {
         });
 
         // Step 2: Fetch GeoTIFF data layers separately
-        let hasFluxLayer = true;
+        let hasFluxLayer = false;
         try {
-          console.log('Fetching GeoTIFF data layers...');
-          // Use HIGH quality for most regions (US, Europe, South Africa, etc.)
-          // Only use BASE + EXPANDED_COVERAGE for Latin America
-          const dataLayers = await fetchDataLayers(lat, lng, GOOGLE_MAPS_API_KEY, {
-            radiusMeters: 50,
-            requiredQuality: 'HIGH',
-            useExpandedCoverage: true
-          });
+          console.log('🔍 Starting GeoTIFF fetch process...');
+          console.log('📍 Location:', { lat, lng });
+          console.log('🔑 API Key present:', !!GOOGLE_MAPS_API_KEY);
+          console.log('📦 fetchDataLayers function:', typeof fetchDataLayers);
 
-          console.log('Data layers received, fetching solar flux layer...');
+          // Use BASE quality with EXPANDED_COVERAGE for broadest coverage
+          // BASE quality (0.25 m/pixel) works globally with experimental expanded coverage
+          // Note: MEDIUM quality has known issues and may not work
+          const dataLayersOptions = {
+            radiusMeters: 100,
+            requiredQuality: 'BASE',
+            useExpandedCoverage: true
+          };
+          console.log('⚙️ Options:', dataLayersOptions);
+
+          console.log('📡 Calling fetchDataLayers...');
+          const dataLayers = await fetchDataLayers(lat, lng, GOOGLE_MAPS_API_KEY, dataLayersOptions);
+          console.log('✅ Data layers received:', dataLayers);
+
+          console.log('🎨 Fetching solar flux layer...');
           const fluxLayer = await getSolarFluxLayer(dataLayers, GOOGLE_MAPS_API_KEY, LAYER_TYPES.ANNUAL_FLUX);
-          console.log('Solar flux layer received:', fluxLayer);
+          console.log('✅ Solar flux layer received:', fluxLayer);
+
           setSolarFluxLayer(fluxLayer);
           hasFluxLayer = true;
-          console.log('Solar flux layer state updated');
+          console.log('✅ Solar flux layer state updated successfully');
         } catch (fluxError) {
-          console.error('Could not load solar flux overlay:', fluxError);
-          // Continue without flux overlay - not critical
+          console.error('❌ Could not load solar flux overlay:', fluxError);
+          console.error('❌ Error stack:', fluxError.stack);
+          console.error('❌ Error type:', fluxError.constructor.name);
+
+          // Check for specific error types
+          if (fluxError.message?.includes('404') || fluxError.message?.includes('NOT_FOUND')) {
+            console.warn('⚠️ Solar data not available for this location. Try a different area with coverage.');
+          } else if (fluxError.message?.includes('403') || fluxError.message?.includes('PERMISSION_DENIED')) {
+            console.error('🔒 API key issue. Check that Solar API is enabled in Google Cloud Console.');
+          } else {
+            console.error('💥 Unexpected error:', fluxError.message);
+          }
+
+          // Continue without flux overlay - not critical for building analysis
+          setSolarFluxLayer(null);
         }
 
         // Show completion message (works with or without flux overlay)
