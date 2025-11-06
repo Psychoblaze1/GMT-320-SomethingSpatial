@@ -1,6 +1,32 @@
 // Campus Sustainability Data Service
 // All the data and calculations for the sustainability dashboard
 
+// Real data from GLTF model (populated dynamically)
+let realBuildingData = null;
+let realBinData = null;
+
+/**
+ * Set real campus data from GLTF model
+ * @param {object} campusData - Real data from realCampusDataService
+ */
+export function setRealCampusData(campusData) {
+  if (campusData.buildings) {
+    realBuildingData = campusData.buildings;
+    console.log(`✓ Loaded ${realBuildingData.length} real buildings into sustainability data`);
+  }
+  if (campusData.bins) {
+    realBinData = campusData.bins;
+    console.log(`✓ Loaded ${realBinData.length} real bins into sustainability data`);
+  }
+}
+
+/**
+ * Check if real data is loaded
+ */
+export function hasRealData() {
+  return realBuildingData !== null && realBinData !== null;
+}
+
 // Waste bin locations on the 3D map
 // (x, y, z) coordinates - Y is raised to 30 so bins show above the ground model
 export const binLocations = [
@@ -249,6 +275,37 @@ export const greenSpaces = [
   }
 ];
 
+/**
+ * Get roof spaces data (real or mock)
+ * Returns real building data if loaded, otherwise mock data
+ */
+export function getRoofSpaces() {
+  if (realBuildingData) {
+    return realBuildingData.map(building => ({
+      id: building.id,
+      buildingName: building.name,
+      area: building.area || 1500,
+      solarPotential: building.solarPotential || 100,
+      solarEfficiency: 0.15,
+      annualRainfall: 680,
+      rainwaterCapacity: building.rainwater?.annualCapacity || 0,
+      currentlyInstalled: {
+        solar: 0, // Assume none installed for individual buildings
+        rainwater: false
+      },
+      location: building.location
+    }));
+  }
+  return roofSpaces;
+}
+
+/**
+ * Get bin locations (real or mock)
+ */
+export function getBinLocations() {
+  return realBinData || binLocations;
+}
+
 export const studyPods = [
   {
     id: 1,
@@ -308,6 +365,27 @@ export const studyPods = [
 ];
 
 export function getTotalRoofMetrics() {
+  // Use real data if available, otherwise fall back to mock data
+  if (realBuildingData) {
+    const totalArea = realBuildingData.reduce((sum, b) => sum + (b.area || 0), 0);
+    const totalSolarPotential = realBuildingData.reduce((sum, b) => sum + (b.solarPotential || 0), 0);
+    const totalRainwaterCapacity = realBuildingData.reduce((sum, b) => sum + (b.rainwater?.annualCapacity || 0), 0);
+    const installedSolar = Math.round(totalSolarPotential * 0.1); // 10% installed
+    const rainwaterHarvestingCount = Math.ceil(realBuildingData.length * 0.2); // 20% have systems
+
+    return {
+      totalArea: Math.round(totalArea),
+      totalSolarPotential: Math.round(totalSolarPotential),
+      totalRainwaterCapacity: Math.round(totalRainwaterCapacity),
+      installedSolar,
+      remainingSolarPotential: Math.round(totalSolarPotential - installedSolar),
+      solarCoverage: (installedSolar / totalSolarPotential * 100).toFixed(1),
+      rainwaterHarvestingCount,
+      rainwaterCoverage: ((rainwaterHarvestingCount / realBuildingData.length) * 100).toFixed(1)
+    };
+  }
+
+  // Fallback to mock data
   const totalArea = roofSpaces.reduce((sum, roof) => sum + roof.area, 0);
   const totalSolarPotential = roofSpaces.reduce((sum, roof) => sum + roof.solarPotential, 0);
   const totalRainwaterCapacity = roofSpaces.reduce((sum, roof) => sum + roof.rainwaterCapacity, 0);
@@ -377,17 +455,20 @@ export function getStudyPodMetrics() {
 
 // Get waste bin stats - how full they are, how many of each type
 export function getBinMetrics() {
-  const binsByType = binLocations.reduce((acc, bin) => {
+  // Use real bin data if available
+  const bins = realBinData || binLocations;
+
+  const binsByType = bins.reduce((acc, bin) => {
     acc[bin.type] = (acc[bin.type] || 0) + 1;
     return acc;
   }, {});
 
-  const avgFillLevel = binLocations.reduce((sum, bin) => sum + bin.fillLevel, 0) / binLocations.length;
-  const fullBins = binLocations.filter(bin => bin.fillLevel >= 80).length;
-  const nearlyEmpty = binLocations.filter(bin => bin.fillLevel < 30).length;
+  const avgFillLevel = bins.reduce((sum, bin) => sum + bin.fillLevel, 0) / bins.length;
+  const fullBins = bins.filter(bin => bin.fillLevel >= 80).length;
+  const nearlyEmpty = bins.filter(bin => bin.fillLevel < 30).length;
 
   return {
-    totalBins: binLocations.length,
+    totalBins: bins.length,
     binsByType,
     avgFillLevel: avgFillLevel.toFixed(1),
     fullBins,
@@ -597,6 +678,10 @@ const sustainabilityData = {
   roofSpaces,
   greenSpaces,
   studyPods,
+  getRoofSpaces,
+  getBinLocations,
+  setRealCampusData,
+  hasRealData,
   getTotalRoofMetrics,
   getTotalGreenSpaceMetrics,
   getStudyPodMetrics,

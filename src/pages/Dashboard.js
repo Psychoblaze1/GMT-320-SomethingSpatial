@@ -68,10 +68,13 @@ import {
   getEnergyProjections,
   getCarbonImpactComparison,
   getAchievements,
-  roofSpaces,
+  getRoofSpaces,
+  setRealCampusData,
+  hasRealData,
   greenSpaces,
   studyPods
 } from '../services/sustainabilityData';
+import { getRealCampusData } from '../services/realCampusDataService';
 
 // Register Chart.js components
 ChartJS.register(
@@ -673,7 +676,7 @@ const RoofSpaceDetails = ({ roofMetrics }) => {
         <Typography variant="subtitle2" gutterBottom>Rainwater Harvesting</Typography>
         <Box sx={{ mb: 2 }}>
           <Box display="flex" justifyContent="space-between" mb={1}>
-            <Typography variant="body2">{roofMetrics.rainwaterHarvestingCount} of {roofSpaces.length} buildings</Typography>
+            <Typography variant="body2">{roofMetrics.rainwaterHarvestingCount} of {getRoofSpaces().length} buildings</Typography>
             <Typography variant="body2">{roofMetrics.rainwaterCoverage}%</Typography>
           </Box>
           <LinearProgress
@@ -801,9 +804,30 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const loadMetrics = () => {
+    const loadMetrics = async () => {
       setLoading(true);
 
+      try {
+        // Try to load real campus data from GLTF model
+        // Get Google Solar API key from environment
+        const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+
+        console.log('Loading real campus data...');
+        const realData = await getRealCampusData(apiKey);
+
+        // Set real data in sustainability service
+        setRealCampusData(realData);
+
+        console.log('✓ Real campus data loaded successfully');
+        console.log(`  - ${realData.buildings.length} buildings`);
+        console.log(`  - ${realData.bins.length} bins`);
+        console.log(`  - ${Math.round(realData.metrics.totalSolarPotential)} kW total solar potential`);
+      } catch (error) {
+        console.warn('Could not load real campus data, using mock data:', error.message);
+        // Continue with mock data
+      }
+
+      // Calculate metrics (will use real data if available, otherwise mock)
       const roofMetrics = getTotalRoofMetrics();
       const greenMetrics = getTotalGreenSpaceMetrics();
       const podMetrics = getStudyPodMetrics();
@@ -827,6 +851,9 @@ export default function Dashboard() {
       });
 
       setLoading(false);
+
+      // Log whether using real or mock data
+      console.log(`Dashboard using ${hasRealData() ? 'REAL' : 'MOCK'} campus data`);
     };
 
     loadMetrics();
@@ -961,7 +988,7 @@ export default function Dashboard() {
 
                 {/* Charts Row */}
                 <Grid item xs={12} md={6}>
-                  <SolarPotentialChart roofData={roofSpaces} />
+                  <SolarPotentialChart roofData={getRoofSpaces()} />
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <GreenSpaceChart greenSpaceData={greenSpaces} />
@@ -986,7 +1013,7 @@ export default function Dashboard() {
             {tabValue === 1 && (
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
-                  <SolarPotentialChart roofData={roofSpaces} />
+                  <SolarPotentialChart roofData={getRoofSpaces()} />
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <RoofSpaceDetails roofMetrics={metrics.roof} />
@@ -1008,7 +1035,7 @@ export default function Dashboard() {
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {roofSpaces.map((roof) => (
+                            {getRoofSpaces().map((roof) => (
                               <TableRow key={roof.id} hover>
                                 <TableCell>{roof.buildingName}</TableCell>
                                 <TableCell align="right">{roof.area.toLocaleString()}</TableCell>

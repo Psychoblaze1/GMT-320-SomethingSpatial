@@ -1,7 +1,8 @@
 import React from 'react';
-import { Box, Typography, IconButton, LinearProgress } from '@mui/material';
+import { Box, Typography, IconButton, LinearProgress, Stack, Divider, Zoom } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { glassStyle } from '../../theme';
 
 export default function BinPanel({ selectedBin, onClose }) {
   if (!selectedBin) return null;
@@ -21,37 +22,61 @@ export default function BinPanel({ selectedBin, onClose }) {
   };
 
   return (
-    <Box
-      sx={{
-        position: 'absolute',
-        bottom: 16,
-        right: 200,
-        zIndex: 1000,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        border: '1px solid rgba(0, 0, 0, 0.1)',
-        borderRadius: 2,
-        p: 2,
-        minWidth: 250,
-      }}
-    >
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+    <Zoom in timeout={400}>
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 16,
+          right: 200,
+          zIndex: 1000,
+          ...glassStyle,
+          borderRadius: 3,
+          p: 2,
+          minWidth: 250,
+          maxWidth: 280,
+          transition: 'all 0.3s ease'
+        }}
+      >
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <DeleteIcon color="action" />
-          <Typography variant="h6">Bin Info</Typography>
+          <DeleteIcon fontSize="small" color="primary" />
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+            Waste Bin Info
+          </Typography>
         </Box>
         <IconButton size="small" onClick={onClose}>
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <Divider sx={{ mb: 2 }} />
+
+      <Stack spacing={1.5}>
+        {/* Bin ID */}
         <Box>
-          <Typography variant="caption" color="text.secondary">Type</Typography>
-          <Typography variant="body2">{formatType(type)}</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+            Bin ID
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 0.5, fontFamily: 'monospace' }}>
+            {id}
+          </Typography>
         </Box>
 
+        {/* Type */}
         <Box>
-          <Typography variant="caption" color="text.secondary">Fill Level</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+            Type
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 500 }}>
+            {formatType(type)}
+          </Typography>
+        </Box>
+
+        {/* Fill Level */}
+        <Box>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+            Fill Level
+          </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
             <LinearProgress
               variant="determinate"
@@ -59,29 +84,33 @@ export default function BinPanel({ selectedBin, onClose }) {
               color={getFillLevelColor(fillLevel)}
               sx={{ flexGrow: 1, height: 8, borderRadius: 1 }}
             />
-            <Typography variant="body2" sx={{ minWidth: 45 }}>
+            <Typography variant="body2" sx={{ minWidth: 45, fontWeight: 500 }}>
               {fillLevel}%
             </Typography>
           </Box>
         </Box>
 
+        {/* Last Emptied */}
         <Box>
-          <Typography variant="caption" color="text.secondary">Coordinates</Typography>
-          <Typography variant="body2">
-            X: {position[0]}, Y: {position[1]}, Z: {position[2]}
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+            Last Emptied
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 0.5 }}>
+            {lastEmptied}
           </Typography>
         </Box>
 
+        {/* Location */}
         <Box>
-          <Typography variant="caption" color="text.secondary">Last Emptied</Typography>
-          <Typography variant="body2">{lastEmptied}</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+            Location
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 0.5, fontFamily: 'monospace', fontSize: '0.75rem' }}>
+            X: {position[0].toFixed(1)}, Y: {position[1].toFixed(1)}, Z: {position[2].toFixed(1)}
+          </Typography>
         </Box>
-
-        <Box>
-          <Typography variant="caption" color="text.secondary">ID</Typography>
-          <Typography variant="body2">{id}</Typography>
-        </Box>
-      </Box>
+      </Stack>
     </Box>
+    </Zoom>
   );
 }

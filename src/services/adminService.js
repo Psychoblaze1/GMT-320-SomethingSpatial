@@ -230,35 +230,6 @@ export async function deleteGeoPackage(gpkgId, userId) {
 // ============================================================================
 
 /**
- * Save sustainability data items to Firestore (bins, roofs, etc.)
- */
-export async function saveSustainabilityData(dataType, items, userId) {
-  try {
-    const batch = writeBatch(db);
-    const collectionRef = collection(db, 'sustainability-data', dataType, 'items');
-
-    items.forEach(item => {
-      const docRef = doc(collectionRef);
-      batch.set(docRef, {
-        ...item,
-        updatedAt: serverTimestamp(),
-        updatedBy: userId
-      });
-    });
-
-    await batch.commit();
-
-    // Log the action
-    await logAdminAction('bulk-update', 'sustainability-data', dataType, userId, { count: items.length });
-
-    return true;
-  } catch (error) {
-    console.error('Error saving sustainability data:', error);
-    throw error;
-  }
-}
-
-/**
  * Get sustainability data by type
  */
 export async function getSustainabilityData(dataType) {
@@ -344,6 +315,59 @@ export async function addSustainabilityItem(dataType, itemData, userId) {
   }
 }
 
+/**
+ * Batch save multiple sustainability items (for bulk import from GLTF)
+ */
+export async function saveSustainabilityData(dataType, items, userId) {
+  try {
+    const collectionRef = collection(db, 'sustainability-data', dataType, 'items');
+    const batch = writeBatch(db);
+    const timestamp = serverTimestamp();
+
+    // Firestore allows max 500 operations per batch
+    const maxBatchSize = 500;
+    const batches = [];
+
+    for (let i = 0; i < items.length; i += maxBatchSize) {
+      const batchItems = items.slice(i, i + maxBatchSize);
+      const currentBatch = writeBatch(db);
+
+      batchItems.forEach((item) => {
+        const docRef = doc(collectionRef, String(item.id || Date.now() + Math.random()));
+        currentBatch.set(docRef, {
+          ...item,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          createdBy: userId,
+          updatedBy: userId
+        });
+      });
+
+      batches.push(currentBatch);
+    }
+
+    // Commit all batches
+    for (const batch of batches) {
+      await batch.commit();
+    }
+
+    // Log the bulk action
+    await logAdminAction(
+      'bulk-create',
+      'sustainability-data',
+      dataType,
+      userId,
+      { itemCount: items.length, source: 'GLTF extraction' }
+    );
+
+    console.log(`Successfully saved ${items.length} ${dataType} items in ${batches.length} batch(es)`);
+    return { success: true, count: items.length, batches: batches.length };
+  } catch (error) {
+    console.error('Error batch saving sustainability data:', error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // USER MANAGEMENT
 // ============================================================================
@@ -389,15 +413,80 @@ export async function updateUserRole(userId, newRole, adminUserId) {
 // ============================================================================
 // AUDIT LOGGING
 // ============================================================================
-export async function logAdminAction(action, resourceType, resourceId, userId, changes) {
+/**
+ * Determine the severity level of an admin action
+ */
+function getActionSeverity(action, resourceType) {
+  // Critical actions that affect system security or data integrity
+  const criticalActions = ['delete', 'bulk-delete', 'update-role', 'bulk-update'];
+  const criticalResources = ['user', 'audit-log', 'admin-settings'];
+
+  if (criticalActions.includes(action) || criticalResources.includes(resourceType)) {
+    return 'critical';
+  }
+
+  // Major actions that affect significant data
+  const majorActions = ['create', 'update', 'bulk-create', 'upload'];
+  if (majorActions.includes(action)) {
+    return 'major';
+  }
+
+  // Minor actions like reads or queries
+  return 'minor';
+}
+
+/**
+ * Get user information for audit log
+ */
+async function getUserInfo(userId) {
   try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      return {
+        displayName: userData.displayName || userData.email || 'Unknown User',
+        email: userData.email,
+        role: userData.role
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching user info for audit:', error);
+  }
+
+  return {
+    displayName: 'Unknown User',
+    email: null,
+    role: null
+  };
+}
+
+/**
+ * Log an admin action with enhanced metadata
+ */
+export async function logAdminAction(action, resourceType, resourceId, userId, changes, metadata = {}) {
+  try {
+    // Get user information
+    const userInfo = await getUserInfo(userId);
+
+    // Determine action severity
+    const severity = getActionSeverity(action, resourceType);
+
     const logsRef = collection(db, 'audit-log');
     await addDoc(logsRef, {
       action,
       resourceType,
       resourceId,
       userId,
+      userName: userInfo.displayName,
+      userEmail: userInfo.email,
+      userRole: userInfo.role,
       changes,
+      severity,
+      metadata,
+      ipAddress: metadata.ipAddress || null,
+      userAgent: metadata.userAgent || null,
       timestamp: serverTimestamp()
     });
   } catch (error) {

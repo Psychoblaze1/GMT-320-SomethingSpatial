@@ -13,12 +13,14 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import PeopleIcon from '@mui/icons-material/People';
 import DatasetIcon from '@mui/icons-material/Dataset';
 import ArticleIcon from '@mui/icons-material/Article';
+import HistoryIcon from '@mui/icons-material/History';
 import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { getAllUsers, updateUserRole } from '../services/adminService';
 import { useAuth } from '../contexts/AuthContext';
 import DataManager from './admin/DataManager';
 import BlogManager from './admin/BlogManager';
+import AuditLog from './admin/AuditLog';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -128,6 +130,7 @@ export default function Admin() {
             <Tab icon={<SettingsIcon />} label="Overview" />
             <Tab icon={<DatasetIcon />} label="Data Manager" />
             <Tab icon={<ArticleIcon />} label="Blog" />
+            <Tab icon={<HistoryIcon />} label="Audit Log" />
           </Tabs>
         </Box>
 
@@ -236,6 +239,11 @@ export default function Admin() {
         {/* Blog Tab */}
         <TabPanel value={currentTab} index={2}>
           <BlogManager />
+        </TabPanel>
+
+        {/* Audit Log Tab */}
+        <TabPanel value={currentTab} index={3}>
+          <AuditLog />
         </TabPanel>
 
         {/* Role Change Confirmation Dialog */}

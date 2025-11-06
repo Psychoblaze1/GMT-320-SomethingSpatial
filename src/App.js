@@ -17,6 +17,7 @@ import Map2D from './pages/Map2D';
 import Admin from './pages/Admin';
 import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
+import About from './pages/About';
 import PrivateRoute from './components/auth/PrivateRoute';
 import AdminRoute from './components/auth/AdminRoute';
 
@@ -52,6 +53,11 @@ function App() {
             <Route path="/blog/:slug" element={
               <PrivateRoute>
                 <BlogPostPage />
+              </PrivateRoute>
+            } />
+            <Route path="/about" element={
+              <PrivateRoute>
+                <About />
               </PrivateRoute>
             } />
             <Route path="/admin" element={

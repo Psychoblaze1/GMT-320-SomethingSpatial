@@ -7,7 +7,12 @@ import { glassStyle } from '../../theme';
 export default function DataPanel({ selectedObject, onClose }) {
   if (!selectedObject) return null;
 
-  const { id, buildingName, buildingType, height } = selectedObject;
+  const { id, buildingName, baseHeight, topHeight, height } = selectedObject;
+
+  // Helper function to check if a value should be displayed
+  const shouldDisplay = (value) => {
+    return value && value !== 'N/A' && value !== 'NULL' && value.trim() !== '';
+  };
 
   return (
     <Zoom in timeout={400}>
@@ -41,44 +46,64 @@ export default function DataPanel({ selectedObject, onClose }) {
 
         <Stack spacing={1.5}>
           {/* Building Name */}
-          <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
-              Name
-            </Typography>
-            <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 500 }}>
-              {buildingName}
-            </Typography>
-          </Box>
+          {shouldDisplay(buildingName) && (
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+                Name
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 500 }}>
+                {buildingName}
+              </Typography>
+            </Box>
+          )}
 
           {/* ID */}
-          <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
-              ID
-            </Typography>
-            <Typography variant="body2" sx={{ mt: 0.5, fontFamily: 'monospace' }}>
-              {id}
-            </Typography>
-          </Box>
-
-          {/* Building Type */}
-          <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
-              Type
-            </Typography>
-            <Typography variant="body2" sx={{ mt: 0.5 }}>
-              {buildingType}
-            </Typography>
-          </Box>
+          {shouldDisplay(id) && (
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+                ID
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 0.5, fontFamily: 'monospace' }}>
+                {id}
+              </Typography>
+            </Box>
+          )}
 
           {/* Height */}
-          <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
-              Height
-            </Typography>
-            <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 500 }}>
-              {height}
-            </Typography>
-          </Box>
+          {shouldDisplay(height) && (
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+                Height
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 500 }}>
+                {height}
+              </Typography>
+            </Box>
+          )}
+
+          {/* Base Height */}
+          {shouldDisplay(baseHeight) && (
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+                Base Elevation
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                {baseHeight}
+              </Typography>
+            </Box>
+          )}
+
+          {/* Top Height */}
+          {shouldDisplay(topHeight) && (
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>
+                Top Elevation
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                {topHeight}
+              </Typography>
+            </Box>
+          )}
         </Stack>
       </Box>
     </Zoom>

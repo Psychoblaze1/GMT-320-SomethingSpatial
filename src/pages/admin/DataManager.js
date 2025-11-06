@@ -33,7 +33,8 @@ import {
   InputLabel,
   Switch,
   FormControlLabel,
-  Divider
+  Divider,
+  CircularProgress
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -48,16 +49,22 @@ import {
   roofSpaces,
   greenSpaces,
   studyPods,
-  walkwayPaths
+  walkwayPaths,
+  setRealCampusData,
+  hasRealData
 } from '../../services/sustainabilityData';
 import {
   addSustainabilityItem,
   updateSustainabilityItem,
-  deleteSustainabilityItem
+  deleteSustainabilityItem,
+  saveSustainabilityData,
+  getSustainabilityData
 } from '../../services/adminService';
+import { getRealCampusData } from '../../services/realCampusDataService';
 import { useAuth } from '../../contexts/AuthContext';
 
 const DATA_TYPES = [
+  { value: 'realData', label: 'Real GLTF Data', data: [] },
   { value: 'bins', label: 'Waste Bins', data: binLocations },
   { value: 'roofs', label: 'Roof Spaces', data: roofSpaces },
   { value: 'greenSpaces', label: 'Green Spaces', data: greenSpaces },
@@ -74,15 +81,113 @@ export default function DataManager() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [formData, setFormData] = useState({});
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const [realCampusData, setRealCampusData] = useState(null);
+  const [loadingRealData, setLoadingRealData] = useState(false);
+  const [savingRealData, setSavingRealData] = useState(false);
+  const [loadingFirestoreData, setLoadingFirestoreData] = useState(false);
 
-  const loadData = useCallback(() => {
+  const loadData = useCallback(async () => {
     const currentType = DATA_TYPES[selectedTab];
-    setData(currentType.data);
-  }, [selectedTab]);
+
+    if (currentType.value === 'realData' && realCampusData) {
+      // Show real data if loaded
+      setData(realCampusData.buildings || []);
+    } else if (currentType.value === 'bins' || currentType.value === 'roofs') {
+      // Load from Firestore for bins and roofs
+      setLoadingFirestoreData(true);
+      try {
+        const firestoreData = await getSustainabilityData(currentType.value);
+        if (firestoreData && firestoreData.length > 0) {
+          setData(firestoreData);
+          console.log(`✓ Loaded ${firestoreData.length} ${currentType.value} items from Firestore`);
+        } else {
+          // Fallback to mock data if no Firestore data
+          setData(currentType.data);
+          console.log(`No Firestore data for ${currentType.value}, using mock data`);
+        }
+      } catch (error) {
+        console.error(`Error loading ${currentType.value} from Firestore:`, error);
+        // Fallback to mock data on error
+        setData(currentType.data);
+        showSnackbar(`Could not load ${currentType.value} from database, showing mock data`, 'warning');
+      } finally {
+        setLoadingFirestoreData(false);
+      }
+    } else {
+      // Use mock data for other tabs
+      setData(currentType.data);
+    }
+  }, [selectedTab, realCampusData]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Load real data from GLTF
+  const handleLoadRealData = async () => {
+    setLoadingRealData(true);
+    try {
+      const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+      showSnackbar('Loading real data from GLTF model...', 'info');
+
+      const campusData = await getRealCampusData(apiKey);
+      setRealCampusData(campusData);
+      setRealCampusData(campusData); // Set in sustainability service too
+
+      showSnackbar(`Successfully loaded ${campusData.buildings.length} buildings and ${campusData.bins.length} bins from GLTF model`, 'success');
+      loadData(); // Refresh display
+    } catch (error) {
+      console.error('Error loading real data:', error);
+      showSnackbar('Error loading real data: ' + error.message, 'error');
+    } finally {
+      setLoadingRealData(false);
+    }
+  };
+
+  // Save real data to Firestore
+  const handleSaveRealData = async () => {
+    if (!realCampusData) {
+      showSnackbar('No real data loaded. Please load data first.', 'warning');
+      return;
+    }
+
+    setSavingRealData(true);
+    try {
+      showSnackbar('Saving real data to Firestore...', 'info');
+
+      // Save buildings as roof spaces
+      const roofData = realCampusData.buildings.map(building => ({
+        id: building.id,
+        buildingName: building.name,
+        area: Math.round(building.area || 1500),
+        solarPotential: Math.round(building.solarPotential || 100),
+        solarEfficiency: 0.15,
+        annualRainfall: 680,
+        rainwaterCapacity: Math.round(building.rainwater?.annualCapacity || 0),
+        currentlyInstalled: {
+          solar: 0,
+          rainwater: false
+        },
+        location: building.location,
+        // Additional metadata from API
+        solarDataAvailable: building.solarDataAvailable || false,
+        yearlyEnergyKwh: building.yearlyEnergyKwh || 0
+      }));
+
+      await saveSustainabilityData('roofs', roofData, currentUser.uid);
+      showSnackbar(`Successfully saved ${roofData.length} buildings to database`, 'success');
+
+      // Save bins
+      await saveSustainabilityData('bins', realCampusData.bins, currentUser.uid);
+      showSnackbar(`Successfully saved ${realCampusData.bins.length} bins to database`, 'success');
+
+    } catch (error) {
+      console.error('Error saving real data:', error);
+      showSnackbar('Error saving real data: ' + error.message, 'error');
+    } finally {
+      setSavingRealData(false);
+    }
+  };
 
   const showSnackbar = (message, severity = 'info') => {
     setSnackbar({ open: true, message, severity });
@@ -236,6 +341,18 @@ export default function DataManager() {
     const currentType = DATA_TYPES[selectedTab].value;
 
     switch (currentType) {
+      case 'realData':
+        return (
+          <>
+            <TableCell><strong>ID</strong></TableCell>
+            <TableCell><strong>Building Name</strong></TableCell>
+            <TableCell><strong>Area (m²)</strong></TableCell>
+            <TableCell><strong>Solar Potential (kW)</strong></TableCell>
+            <TableCell><strong>Yearly Energy (kWh)</strong></TableCell>
+            <TableCell><strong>Rainwater (L/yr)</strong></TableCell>
+            <TableCell><strong>Data Source</strong></TableCell>
+          </>
+        );
       case 'bins':
         return (
           <>
@@ -300,6 +417,24 @@ export default function DataManager() {
     const currentType = DATA_TYPES[selectedTab].value;
 
     switch (currentType) {
+      case 'realData':
+        return (
+          <>
+            <TableCell>{item.id || 'N/A'}</TableCell>
+            <TableCell><strong>{item.name || 'Unnamed Building'}</strong></TableCell>
+            <TableCell>{item.area ? Math.round(item.area).toLocaleString() : '0'}</TableCell>
+            <TableCell>{item.solarPotential ? Math.round(item.solarPotential) : 0}</TableCell>
+            <TableCell>{item.yearlyEnergyKwh ? Math.round(item.yearlyEnergyKwh).toLocaleString() : 'N/A'}</TableCell>
+            <TableCell>{item.rainwater?.annualCapacity ? Math.round(item.rainwater.annualCapacity).toLocaleString() : '0'}</TableCell>
+            <TableCell>
+              <Chip
+                label={item.solarDataAvailable ? 'Google Solar API' : 'Estimated'}
+                size="small"
+                color={item.solarDataAvailable ? 'success' : 'default'}
+              />
+            </TableCell>
+          </>
+        );
       case 'bins':
         return (
           <>
@@ -825,74 +960,158 @@ export default function DataManager() {
             </Tabs>
           </Box>
 
+          {/* Real Data Summary */}
+          {selectedTab === 0 && realCampusData && (
+            <Alert severity="success" sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                <strong>Real Data Loaded Successfully</strong>
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={3}>
+                  <Typography variant="body2">
+                    <strong>Buildings:</strong> {realCampusData.buildings.length}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <Typography variant="body2">
+                    <strong>Bins:</strong> {realCampusData.bins.length}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <Typography variant="body2">
+                    <strong>Total Solar:</strong> {Math.round(realCampusData.metrics.totalSolarPotential).toLocaleString()} kW
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <Typography variant="body2">
+                    <strong>Total Roof Area:</strong> {Math.round(realCampusData.metrics.totalRoofArea).toLocaleString()} m²
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Alert>
+          )}
+
+          {/* Firestore Data Info for Bins and Roofs */}
+          {(selectedTab === 1 || selectedTab === 2) && data.length > 0 && !loadingFirestoreData && (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              <Typography variant="body2">
+                <strong>Database Data:</strong> Showing {data.length} {DATA_TYPES[selectedTab].label.toLowerCase()} loaded from Firestore.
+                {' '}To update this data, use the "Real GLTF Data" tab to extract and save new data from the 3D model.
+              </Typography>
+            </Alert>
+          )}
+
           {/* Actions */}
           <Stack direction="row" spacing={2} sx={{ mt: 2, mb: 2 }}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenDialog()}
-            >
-              Add New
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={handleExport}
-            >
-              Export CSV
-            </Button>
-            <input
-              accept=".csv"
-              style={{ display: 'none' }}
-              id="import-csv-file"
-              type="file"
-              onChange={handleImport}
-            />
-            <label htmlFor="import-csv-file">
-              <Button
-                variant="outlined"
-                component="span"
-                startIcon={<UploadIcon />}
-              >
-                Import CSV
-              </Button>
-            </label>
+            {selectedTab === 0 ? (
+              // Real Data Tab Actions
+              <>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<UploadIcon />}
+                  onClick={handleLoadRealData}
+                  disabled={loadingRealData}
+                >
+                  {loadingRealData ? 'Loading...' : 'Load Real Data from GLTF'}
+                </Button>
+                {realCampusData && (
+                  <Button
+                    variant="contained"
+                    color="success"
+                    startIcon={<SaveIcon />}
+                    onClick={handleSaveRealData}
+                    disabled={savingRealData}
+                  >
+                    {savingRealData ? 'Saving...' : 'Save to Database'}
+                  </Button>
+                )}
+              </>
+            ) : (
+              // Other Tabs Actions
+              <>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => handleOpenDialog()}
+                >
+                  Add New
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<DownloadIcon />}
+                  onClick={handleExport}
+                >
+                  Export CSV
+                </Button>
+                <input
+                  accept=".csv"
+                  style={{ display: 'none' }}
+                  id="import-csv-file"
+                  type="file"
+                  onChange={handleImport}
+                />
+                <label htmlFor="import-csv-file">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    startIcon={<UploadIcon />}
+                  >
+                    Import CSV
+                  </Button>
+                </label>
+              </>
+            )}
           </Stack>
 
           {/* Data Table */}
-          <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  {renderTableHeaders()}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {data.map((item) => (
-                  <TableRow key={item.id} hover>
-                    {renderTableRow(item)}
-                    <TableCell align="right">
-                      <Tooltip title="Edit">
-                        <IconButton size="small" onClick={() => handleOpenDialog(item)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton size="small" color="error" onClick={() => handleDelete(item)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          {loadingFirestoreData ? (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      {renderTableHeaders()}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {data.map((item) => (
+                      <TableRow key={item.id || item.name} hover>
+                        {renderTableRow(item)}
+                        {selectedTab !== 0 && (
+                          <TableCell align="right">
+                            <Tooltip title="Edit">
+                              <IconButton size="small" onClick={() => handleOpenDialog(item)}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete">
+                              <IconButton size="small" color="error" onClick={() => handleDelete(item)}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
 
-          {data.length === 0 && (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              No data available. Click "Add New" to create your first entry.
-            </Alert>
+              {data.length === 0 && (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  {selectedTab === 0
+                    ? 'No real data loaded. Click "Load Real Data from GLTF" to extract data from the 3D model.'
+                    : (selectedTab === 1 || selectedTab === 2)
+                    ? 'No data in database yet. Use the "Real GLTF Data" tab to load and save data from the 3D model.'
+                    : 'No data available. Click "Add New" to create your first entry.'}
+                </Alert>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
